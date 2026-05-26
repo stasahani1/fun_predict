@@ -24,10 +24,7 @@ export default function PostPrediction({ user }) {
       const snap = await getDoc(doc(db, "events", eventId));
       if (snap.exists()) {
         const data = snap.data();
-        // Exclude current user from taggable members
-        setMembers(
-          (data.members || []).filter((m) => m.uid !== user.uid)
-        );
+        setMembers(data.members || []);
       }
     };
     loadEvent();
