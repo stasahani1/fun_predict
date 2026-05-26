@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 export default function CreateEvent({ user }) {
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [startingBalance, setStartingBalance] = useState(100);
   const [creating, setCreating] = useState(false);
   const [myEvents, setMyEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
@@ -59,7 +60,7 @@ export default function CreateEvent({ user }) {
         phase: "posting",
         members: [{ uid: user.uid, name: user.displayName || "Anonymous" }],
         currency: "fun_bucks",
-        startingBalance: 100,
+        startingBalance,
         createdAt: serverTimestamp(),
       });
 
@@ -69,7 +70,7 @@ export default function CreateEvent({ user }) {
         {
           userId: user.uid,
           userName: user.displayName || "Anonymous",
-          balance: 100,
+          balance: startingBalance,
           netProfit: 0,
         }
       );
@@ -109,6 +110,35 @@ export default function CreateEvent({ user }) {
           className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
           maxLength={60}
         />
+        <label className="block text-sm font-semibold text-purple-700 mb-2 mt-4">
+          Starting Balance ($)
+        </label>
+        <div className="flex items-center gap-3">
+          {[50, 100, 200, 500].map((amt) => (
+            <button
+              key={amt}
+              type="button"
+              onClick={() => setStartingBalance(amt)}
+              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
+                startingBalance === amt
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              ${amt}
+            </button>
+          ))}
+        </div>
+        <input
+          type="number"
+          value={startingBalance}
+          onChange={(e) => setStartingBalance(Math.max(10, Number(e.target.value)))}
+          className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 mt-2"
+          min={10}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          Each player starts with this many fun bucks. Min $10.
+        </p>
         <motion.button
           type="submit"
           disabled={creating || !name.trim()}
