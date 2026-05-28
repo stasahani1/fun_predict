@@ -47,6 +47,12 @@ export const PREDICTION_CATEGORIES = [
  * Phase display config.
  */
 export const PHASE_CONFIG = {
+  lobby: {
+    label: "Lobby",
+    color: "bg-brand",
+    emoji: "👥",
+    description: "Share the code — waiting for everyone to join!",
+  },
   posting: {
     label: "Posting Predictions",
     color: "bg-brand",

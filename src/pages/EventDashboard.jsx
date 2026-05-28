@@ -15,7 +15,7 @@ import Leaderboard from "../components/Leaderboard";
 import { motion, AnimatePresence } from "framer-motion";
 import { PHASE_CONFIG } from "../utils/helpers";
 
-const PHASE_ORDER = ["posting", "betting", "live", "resolving", "complete"];
+const PHASE_ORDER = ["lobby", "posting", "betting", "live", "resolving", "complete"];
 
 export default function EventDashboard({ user }) {
   const { eventId } = useParams();
@@ -133,6 +133,47 @@ export default function EventDashboard({ user }) {
 
       {/* Phase Indicator */}
       <PhaseIndicator currentPhase={event.phase} />
+
+      {/* Lobby Phase UI */}
+      {event.phase === "lobby" && (
+        <motion.div
+          className="card-editorial p-6 text-center space-y-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <p className="mono-label text-ink-soft">Join Code</p>
+          <button
+            onClick={copyCode}
+            className="inline-block text-5xl font-mono font-black tracking-[0.3em] text-brand bg-brand-bg px-6 py-4 rounded-2xl border-2 border-rule-dark hover:bg-brand-soft transition-colors"
+          >
+            {copied ? "Copied!" : event.code}
+          </button>
+          <p className="text-xs text-ink-mute">Tap to copy</p>
+
+          <div className="pt-2">
+            <p className="text-sm font-bold text-ink mb-2">
+              {event.members?.length || 1} player{(event.members?.length || 1) !== 1 ? "s" : ""} joined
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {event.members?.map((m) => (
+                <span
+                  key={m.uid}
+                  className="bg-brand-bg text-brand text-sm font-medium px-3 py-1 rounded-full"
+                >
+                  {m.name}
+                  {m.uid === event.creatorId && " (host)"}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {!isCreator && (
+            <p className="text-ink-mute text-sm italic pt-2">
+              Waiting for host to start...
+            </p>
+          )}
+        </motion.div>
+      )}
 
       {/* Action Buttons based on phase */}
       <div className="flex gap-3">

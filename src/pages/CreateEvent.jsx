@@ -57,7 +57,7 @@ export default function CreateEvent({ user }) {
         creatorId: user.uid,
         creatorName: user.displayName || "Anonymous",
         code,
-        phase: "posting",
+        phase: "lobby",
         members: [{ uid: user.uid, name: user.displayName || "Anonymous" }],
         currency: "fun_bucks",
         startingBalance,
