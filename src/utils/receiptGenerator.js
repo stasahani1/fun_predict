@@ -9,6 +9,9 @@ export async function generateReceipt({
   netProfit,
   topBets,
 }) {
+  // Wait for custom fonts to load
+  await document.fonts.ready;
+
   const WIDTH = 600;
   const HEIGHT = 700;
   const canvas = document.createElement("canvas");
@@ -16,34 +19,48 @@ export async function generateReceipt({
   canvas.height = HEIGHT;
   const ctx = canvas.getContext("2d");
 
-  // Background gradient (purple to pink)
-  const grad = ctx.createLinearGradient(0, 0, WIDTH, HEIGHT);
-  grad.addColorStop(0, "#9333ea");
-  grad.addColorStop(1, "#ec4899");
-  ctx.fillStyle = grad;
+  // Background — cream
+  ctx.fillStyle = "#FFF7EC";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // White card
+  // White card with hard shadow
   const cardX = 30;
   const cardY = 30;
   const cardW = WIDTH - 60;
   const cardH = HEIGHT - 60;
-  ctx.fillStyle = "#ffffff";
-  roundRect(ctx, cardX, cardY, cardW, cardH, 20);
+
+  // Shadow
+  ctx.fillStyle = "#181410";
+  roundRect(ctx, cardX + 6, cardY + 6, cardW, cardH, 12);
   ctx.fill();
+
+  // Card
+  ctx.fillStyle = "#ffffff";
+  roundRect(ctx, cardX, cardY, cardW, cardH, 12);
+  ctx.fill();
+
+  // Card border
+  ctx.strokeStyle = "#181410";
+  ctx.lineWidth = 2;
+  roundRect(ctx, cardX, cardY, cardW, cardH, 12);
+  ctx.stroke();
 
   let y = 70;
 
-  // App name
-  ctx.fillStyle = "#9333ea";
-  ctx.font = "bold 28px system-ui, -apple-system, sans-serif";
+  // App name — wordmark
+  ctx.font = "italic 32px 'Instrument Serif', Georgia, serif";
   ctx.textAlign = "center";
-  ctx.fillText("Fun Predict", WIDTH / 2, y);
+  ctx.fillStyle = "#181410";
+  ctx.fillText("hunch", WIDTH / 2 - 6, y);
+  // Measure "hunch" to position the dot
+  const hunchWidth = ctx.measureText("hunch").width;
+  ctx.fillStyle = "#FF6B1A";
+  ctx.fillText(".", WIDTH / 2 - 6 + hunchWidth / 2 + 2, y);
   y += 40;
 
   // Event name
-  ctx.fillStyle = "#1f2937";
-  ctx.font = "bold 22px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#181410";
+  ctx.font = "bold 22px 'IBM Plex Sans', system-ui, sans-serif";
   const eventLines = wrapText(ctx, eventName || "Event", cardW - 60);
   for (const line of eventLines) {
     ctx.fillText(line, WIDTH / 2, y);
@@ -51,64 +68,70 @@ export async function generateReceipt({
   }
   y += 15;
 
-  // Divider
-  ctx.strokeStyle = "#e5e7eb";
-  ctx.lineWidth = 1;
+  // Dashed divider
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = "#E2D2B0";
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(cardX + 30, y);
   ctx.lineTo(cardX + cardW - 30, y);
   ctx.stroke();
+  ctx.setLineDash([]);
   y += 25;
 
   // User name
-  ctx.fillStyle = "#6b7280";
-  ctx.font = "16px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#4A413A";
+  ctx.font = "16px 'IBM Plex Sans', system-ui, sans-serif";
   ctx.fillText(userName || "Player", WIDTH / 2, y);
   y += 35;
 
   // Rank
-  ctx.fillStyle = "#9333ea";
-  ctx.font = "bold 48px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#FF6B1A";
+  ctx.font = "bold 48px 'IBM Plex Mono', monospace";
   ctx.fillText(`#${rank}`, WIDTH / 2, y);
   y += 25;
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "14px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#8E867D";
+  ctx.font = "14px 'IBM Plex Mono', monospace";
   ctx.fillText(`of ${totalPlayers} players`, WIDTH / 2, y);
   y += 35;
 
   // Net profit
-  const profitColor = netProfit >= 0 ? "#16a34a" : "#ef4444";
+  const profitColor = netProfit >= 0 ? "#00C853" : "#FF3055";
   ctx.fillStyle = profitColor;
-  ctx.font = "bold 32px system-ui, -apple-system, sans-serif";
+  ctx.font = "bold 32px 'IBM Plex Mono', monospace";
   const profitText = `${netProfit >= 0 ? "+" : ""}$${netProfit.toFixed(2)}`;
   ctx.fillText(profitText, WIDTH / 2, y);
   y += 22;
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "14px system-ui, -apple-system, sans-serif";
+  ctx.fillStyle = "#8E867D";
+  ctx.font = "14px 'IBM Plex Mono', monospace";
   ctx.fillText("net profit", WIDTH / 2, y);
   y += 35;
 
-  // Divider
-  ctx.strokeStyle = "#e5e7eb";
+  // Dashed divider
+  ctx.setLineDash([6, 4]);
+  ctx.strokeStyle = "#E2D2B0";
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(cardX + 30, y);
   ctx.lineTo(cardX + cardW - 30, y);
   ctx.stroke();
+  ctx.setLineDash([]);
   y += 20;
 
   // Top bets
   if (topBets && topBets.length > 0) {
-    ctx.fillStyle = "#6b7280";
-    ctx.font = "bold 14px system-ui, -apple-system, sans-serif";
-    ctx.fillText("Top Predictions", WIDTH / 2, y);
+    ctx.fillStyle = "#4A413A";
+    ctx.font = "600 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("TOP PREDICTIONS", WIDTH / 2, y);
     y += 20;
 
     ctx.textAlign = "left";
-    ctx.font = "13px system-ui, -apple-system, sans-serif";
+    ctx.font = "13px 'IBM Plex Sans', system-ui, sans-serif";
 
     for (const bet of topBets.slice(0, 4)) {
       const icon = bet.won ? "\u2705" : bet.voided ? "\u2796" : "\u274C";
-      ctx.fillStyle = "#374151";
+      ctx.fillStyle = "#181410";
       const betText = `${icon} ${bet.text}`;
       const lines = wrapText(ctx, betText, cardW - 80);
       for (const line of lines) {
@@ -121,9 +144,9 @@ export async function generateReceipt({
 
   // Footer
   ctx.textAlign = "center";
-  ctx.fillStyle = "#d1d5db";
-  ctx.font = "12px system-ui, -apple-system, sans-serif";
-  ctx.fillText("funpredict.app", WIDTH / 2, HEIGHT - 50);
+  ctx.fillStyle = "#8E867D";
+  ctx.font = "italic 14px 'Instrument Serif', Georgia, serif";
+  ctx.fillText("hunch.", WIDTH / 2, HEIGHT - 50);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");

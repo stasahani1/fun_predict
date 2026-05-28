@@ -8,12 +8,12 @@ export default function PhaseIndicator({ currentPhase }) {
   const config = PHASE_CONFIG[currentPhase];
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
+    <div className="card-editorial p-4">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-2xl">{config.emoji}</span>
         <div>
-          <h3 className="font-bold text-purple-800">{config.label}</h3>
-          <p className="text-xs text-gray-500">{config.description}</p>
+          <h3 className="font-bold text-ink">{config.label}</h3>
+          <p className="text-xs text-ink-mute">{config.description}</p>
         </div>
       </div>
       <div className="flex gap-1">
@@ -21,7 +21,7 @@ export default function PhaseIndicator({ currentPhase }) {
           <motion.div
             key={phase}
             className={`h-2 flex-1 rounded-full ${
-              i <= currentIndex ? "bg-gradient-to-r from-purple-500 to-pink-500" : "bg-gray-200"
+              i <= currentIndex ? "bg-brand" : "bg-rule"
             }`}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}

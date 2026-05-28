@@ -88,7 +88,6 @@ export default function Results({ user }) {
   const sorted = [...balances].sort((a, b) => b.netProfit - a.netProfit);
   const myRank = sorted.findIndex((b) => b.userId === user.uid) + 1;
 
-  // Build top bets for receipt
   const topBets = myBets.slice(0, 4).map((bet) => {
     const pred = predictions.find((p) => p.id === bet.predictionId);
     if (!pred) return { text: "Unknown", won: false, voided: false };
@@ -106,12 +105,11 @@ export default function Results({ user }) {
     <div className="space-y-5">
       <button
         onClick={() => navigate(`/event/${eventId}`)}
-        className="text-purple-500 font-semibold text-sm hover:text-purple-700"
+        className="text-brand font-semibold text-sm hover:text-ink-soft"
       >
         &larr; Back to Event
       </button>
 
-      {/* Confetti effect */}
       {showConfetti && (
         <motion.div
           className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center"
@@ -129,7 +127,7 @@ export default function Results({ user }) {
               {"\uD83C\uDF89"}
             </motion.p>
             <motion.p
-              className="text-2xl font-extrabold text-purple-700 mt-2"
+              className="text-2xl font-serif italic text-ink mt-2"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
@@ -140,18 +138,17 @@ export default function Results({ user }) {
         </motion.div>
       )}
 
-      <h2 className="text-2xl font-extrabold text-purple-800">
+      <h2 className="text-2xl font-serif italic text-ink">
         {event?.name} &mdash; Results
       </h2>
 
-      {/* Your stats */}
       {myBalance && (
         <motion.div
-          className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-5 text-white"
+          className="card-editorial-hero p-5 bg-brand text-white"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <p className="text-sm opacity-80">Your final standing</p>
+          <p className="mono-label opacity-80">Your final standing</p>
           <div className="flex items-end justify-between mt-2">
             <div>
               <p className="text-3xl font-extrabold">
@@ -172,7 +169,6 @@ export default function Results({ user }) {
         </motion.div>
       )}
 
-      {/* Share Receipt Button (Batch 6) */}
       {myBalance && (
         <ShareReceiptButton
           eventName={event?.name}
@@ -184,20 +180,17 @@ export default function Results({ user }) {
         />
       )}
 
-      {/* Leaderboard */}
       <Leaderboard balances={balances} />
 
-      {/* Personality Awards */}
       <PersonalityAwards
         predictions={predictions}
         balances={balances}
         allBets={allBets}
       />
 
-      {/* Your bets breakdown */}
       {myBets.length > 0 && (
         <div>
-          <h3 className="font-bold text-purple-800 mb-3">Your Bets</h3>
+          <h3 className="font-bold text-ink mb-3">Your Bets</h3>
           <div className="space-y-3">
             {myBets.map((bet, i) => {
               const pred = predictions.find(
@@ -229,7 +222,6 @@ export default function Results({ user }) {
                   : 0;
               }
 
-              // Label for bet side
               let sideLabel = bet.side.toUpperCase();
               if (isMulti && pred.outcomes) {
                 const outcome = pred.outcomes.find((o) => o.id === bet.side);
@@ -239,7 +231,6 @@ export default function Results({ user }) {
                 sideLabel = bet.side === "yes" ? "OVER" : "UNDER";
               }
 
-              // Status text
               let statusText;
               if (isConditional && pred.conditionMet === false) {
                 statusText = "Condition not met \u2014 Refunded $10";
@@ -257,15 +248,15 @@ export default function Results({ user }) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`bg-white rounded-xl p-4 border ${
+                  className={`bg-white rounded-xl p-4 border-2 ${
                     voided
                       ? "border-gray-200"
                       : won
-                      ? "border-green-200 bg-green-50"
-                      : "border-red-200 bg-red-50"
+                      ? "border-green-300 bg-green-50"
+                      : "border-red-300 bg-red-50"
                   }`}
                 >
-                  <p className="text-sm font-medium text-gray-700 mb-1">
+                  <p className="text-sm font-medium text-ink-soft mb-1">
                     {pred.text}
                   </p>
                   <div className="flex items-center justify-between">
@@ -275,7 +266,7 @@ export default function Results({ user }) {
                           ? "bg-green-100 text-green-700"
                           : bet.side === "no"
                           ? "bg-red-100 text-red-700"
-                          : "bg-purple-100 text-purple-700"
+                          : "bg-brand-bg text-brand"
                       }`}
                     >
                       You: {sideLabel}
@@ -299,9 +290,8 @@ export default function Results({ user }) {
         </div>
       )}
 
-      {/* All predictions with outcomes */}
       <div>
-        <h3 className="font-bold text-purple-800 mb-3">All Predictions</h3>
+        <h3 className="font-bold text-ink mb-3">All Predictions</h3>
         <div className="space-y-3">
           {predictions.map((pred, i) => (
             <PredictionCard

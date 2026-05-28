@@ -5,9 +5,9 @@ export default function BetCard({ bet, prediction }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-xl p-4 shadow-sm border border-purple-50"
+      className="card-editorial p-4"
     >
-      <p className="text-sm font-medium text-gray-700 mb-1 line-clamp-1">
+      <p className="text-sm font-medium text-ink-soft mb-1 line-clamp-1">
         {prediction?.text || "Unknown prediction"}
       </p>
       <div className="flex items-center justify-between">
@@ -20,7 +20,7 @@ export default function BetCard({ bet, prediction }) {
         >
           {bet.side.toUpperCase()}
         </span>
-        <span className="text-sm text-gray-500 font-medium">${bet.amount}</span>
+        <span className="text-sm text-ink-mute font-medium font-mono">${bet.amount}</span>
       </div>
     </motion.div>
   );

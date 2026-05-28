@@ -28,7 +28,6 @@ export default function SweatView({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [event, setEvent] = useState(null);
 
-  // Event data
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "events", eventId), (snap) => {
       if (snap.exists()) setEvent({ id: snap.id, ...snap.data() });
@@ -36,7 +35,6 @@ export default function SweatView({ user }) {
     return unsub;
   }, [eventId]);
 
-  // Predictions
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "events", eventId, "predictions"),
@@ -50,7 +48,6 @@ export default function SweatView({ user }) {
     return unsub;
   }, [eventId]);
 
-  // Bets
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "events", eventId, "bets"),
@@ -72,7 +69,6 @@ export default function SweatView({ user }) {
     return unsub;
   }, [eventId, user.uid]);
 
-  // Presence: write heartbeat every 30s
   useEffect(() => {
     const writePresence = () => {
       setDoc(doc(db, "events", eventId, "presence", user.uid), {
@@ -87,7 +83,6 @@ export default function SweatView({ user }) {
     return () => clearInterval(interval);
   }, [eventId, user.uid, user.displayName, user.photoURL]);
 
-  // Presence: read online users
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "events", eventId, "presence"),
@@ -107,7 +102,6 @@ export default function SweatView({ user }) {
     return unsub;
   }, [eventId]);
 
-  // Calculate net unrealized value
   const myBetPredictions = predictions.filter((p) => myBets[p.id]);
   const netPosition = myBetPredictions.reduce((sum, pred) => {
     return sum + unrealizedValue(pred, myBets[pred.id]);
@@ -117,23 +111,23 @@ export default function SweatView({ user }) {
     <div className="space-y-5">
       <button
         onClick={() => navigate(`/event/${eventId}`)}
-        className="text-purple-500 font-semibold text-sm hover:text-purple-700"
+        className="text-brand font-semibold text-sm hover:text-ink-soft"
       >
         &larr; Back to Event
       </button>
 
       <div className="flex items-center gap-2">
-        <h2 className="text-2xl font-extrabold text-purple-800">Live View</h2>
+        <h2 className="text-2xl font-serif italic text-ink">Live View</h2>
         <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
       </div>
 
       {/* Your Position Hero Card */}
       <motion.div
-        className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-5 text-white"
+        className="card-editorial-hero p-5 bg-brand text-white"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <p className="text-sm opacity-80">Your Position</p>
+        <p className="mono-label opacity-80">Your Position</p>
         <p className="text-3xl font-extrabold mt-1">
           {netPosition >= 0 ? "+" : ""}
           {formatCurrency(netPosition)}
@@ -146,8 +140,8 @@ export default function SweatView({ user }) {
 
       {/* Who's Online */}
       {onlineUsers.length > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
-          <h3 className="font-bold text-purple-800 mb-2 text-sm">
+        <div className="card-editorial p-4">
+          <h3 className="font-bold text-ink mb-2 text-sm">
             Who's Online ({onlineUsers.length})
           </h3>
           <div className="flex flex-wrap gap-2">
@@ -160,11 +154,11 @@ export default function SweatView({ user }) {
                     className="w-6 h-6 rounded-full"
                   />
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center text-xs font-bold text-purple-600">
+                  <div className="w-6 h-6 rounded-full bg-brand-bg flex items-center justify-center text-xs font-bold text-brand">
                     {u.userName?.[0] || "?"}
                   </div>
                 )}
-                <span className="text-xs font-medium text-gray-700">
+                <span className="text-xs font-medium text-ink-soft">
                   {u.userName?.split(" ")[0]}
                 </span>
                 <span className="inline-block w-2 h-2 bg-green-500 rounded-full" />
@@ -176,7 +170,7 @@ export default function SweatView({ user }) {
 
       {/* Hot Markets */}
       <div>
-        <h3 className="font-bold text-purple-800 mb-3">Hot Markets</h3>
+        <h3 className="font-bold text-ink mb-3">Hot Markets</h3>
         <div className="space-y-3">
           {predictions.slice(0, 10).map((pred, i) => {
             const isBinary = !pred.type || pred.type === "open" || pred.type === "tagged";
@@ -193,9 +187,9 @@ export default function SweatView({ user }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100"
+                className="card-editorial p-4"
               >
-                <p className="text-sm font-semibold text-gray-800 mb-2">
+                <p className="text-sm font-semibold text-ink mb-2">
                   {pred.text}
                 </p>
 
@@ -209,7 +203,7 @@ export default function SweatView({ user }) {
                 {(isBinary || isConditional) && dualOdds && (
                   <div className="flex gap-2">
                     <div className="flex-1 bg-green-50 rounded-xl py-2 text-center">
-                      <span className="text-xs font-semibold uppercase text-gray-500">
+                      <span className="mono-label text-ink-mute">
                         {isOverUnder ? "OVER" : "YES"}
                       </span>
                       <p>
@@ -221,7 +215,7 @@ export default function SweatView({ user }) {
                       </p>
                     </div>
                     <div className="flex-1 bg-red-50 rounded-xl py-2 text-center">
-                      <span className="text-xs font-semibold uppercase text-gray-500">
+                      <span className="mono-label text-ink-mute">
                         {isOverUnder ? "UNDER" : "NO"}
                       </span>
                       <p>
@@ -251,7 +245,7 @@ export default function SweatView({ user }) {
                 )}
 
                 {myBets[pred.id] && (
-                  <p className="text-xs font-bold text-purple-600 mt-2">
+                  <p className="mono-label font-bold text-brand mt-2">
                     Your bet: {myBets[pred.id].toUpperCase()}
                   </p>
                 )}
@@ -264,7 +258,7 @@ export default function SweatView({ user }) {
       {/* Your Active Bets */}
       {myBetPredictions.length > 0 && (
         <div>
-          <h3 className="font-bold text-purple-800 mb-3">Your Active Bets</h3>
+          <h3 className="font-bold text-ink mb-3">Your Active Bets</h3>
           <div className="space-y-2">
             {myBetPredictions.map((pred, i) => {
               const uv = unrealizedValue(pred, myBets[pred.id]);
@@ -274,15 +268,15 @@ export default function SweatView({ user }) {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`bg-white rounded-xl p-3 border ${
-                    uv >= 0 ? "border-green-200" : "border-red-200"
+                  className={`bg-white rounded-xl p-3 border-2 ${
+                    uv >= 0 ? "border-green-300" : "border-red-300"
                   }`}
                 >
-                  <p className="text-sm font-medium text-gray-700 mb-1">
+                  <p className="text-sm font-medium text-ink-soft mb-1">
                     {pred.text}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-purple-600">
+                    <span className="mono-label font-bold text-brand">
                       {myBets[pred.id]?.toUpperCase()}
                     </span>
                     <span

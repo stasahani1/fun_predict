@@ -7,8 +7,8 @@ export default function Leaderboard({ balances }) {
   const sorted = [...balances].sort((a, b) => b.netProfit - a.netProfit);
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
-      <h3 className="font-bold text-purple-800 mb-3">Leaderboard</h3>
+    <div className="card-editorial p-4">
+      <h3 className="font-bold text-ink mb-3">Leaderboard</h3>
       <div className="space-y-2">
         {sorted.map((entry, i) => (
           <motion.div
@@ -17,17 +17,17 @@ export default function Leaderboard({ balances }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.1 }}
             className={`flex items-center justify-between p-3 rounded-xl ${
-              i === 0 ? "bg-gradient-to-r from-yellow-50 to-orange-50" : "bg-gray-50"
+              i === 0 ? "bg-yellow-50 border border-yellow-500/30" : "bg-cream border border-rule"
             }`}
           >
             <div className="flex items-center gap-3">
               <span className="text-lg w-8 text-center">
                 {i < 3 ? MEDALS[i] : `${i + 1}.`}
               </span>
-              <span className="font-semibold text-gray-800">{entry.userName}</span>
+              <span className="font-semibold text-ink">{entry.userName}</span>
             </div>
-            <div className="text-right tabular-nums">
-              <p className="font-bold text-purple-700">
+            <div className="text-right tabular-nums font-mono">
+              <p className="font-bold text-ink">
                 {formatCurrency(entry.balance)}
               </p>
               <p

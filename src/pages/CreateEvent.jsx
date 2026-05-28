@@ -87,19 +87,19 @@ export default function CreateEvent({ user }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-extrabold text-purple-800 mb-1">
+        <h2 className="text-2xl font-serif italic text-ink mb-1">
           Hey {user.displayName?.split(" ")[0]}!
         </h2>
-        <p className="text-gray-500">Create a new event or jump into one below.</p>
+        <p className="text-ink-mute">Create a new event or jump into one below.</p>
       </div>
 
       <motion.form
         onSubmit={handleCreate}
-        className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+        className="card-editorial p-5"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <label className="block text-sm font-semibold text-purple-700 mb-2">
+        <label className="block mono-label text-ink-soft mb-2">
           Event Name
         </label>
         <input
@@ -107,10 +107,10 @@ export default function CreateEvent({ user }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder='e.g. "Friday Night Out"'
-          className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
+          className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50"
           maxLength={60}
         />
-        <label className="block text-sm font-semibold text-purple-700 mb-2 mt-4">
+        <label className="block mono-label text-ink-soft mb-2 mt-4">
           Starting Balance ($)
         </label>
         <div className="flex items-center gap-3">
@@ -121,8 +121,8 @@ export default function CreateEvent({ user }) {
               onClick={() => setStartingBalance(amt)}
               className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
                 startingBalance === amt
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  ? "bg-brand text-white border-2 border-ink shadow-[2px_2px_0_0_#181410]"
+                  : "bg-cream text-ink-soft hover:bg-cream-dark border-2 border-rule-dark"
               }`}
             >
               ${amt}
@@ -133,16 +133,16 @@ export default function CreateEvent({ user }) {
           type="number"
           value={startingBalance}
           onChange={(e) => setStartingBalance(Math.max(10, Number(e.target.value)))}
-          className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 mt-2"
+          className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink mt-2"
           min={10}
         />
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-ink-mute mt-1">
           Each player starts with this many fun bucks. Min $10.
         </p>
         <motion.button
           type="submit"
           disabled={creating || !name.trim()}
-          className="mt-4 w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold py-3 rounded-full shadow-lg disabled:opacity-50"
+          className="mt-4 w-full bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410] disabled:opacity-50"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -152,11 +152,11 @@ export default function CreateEvent({ user }) {
 
       {/* My Events */}
       <div>
-        <h3 className="font-bold text-purple-800 mb-3">Your Events</h3>
+        <h3 className="font-bold text-ink mb-3">Your Events</h3>
         {loadingEvents ? (
-          <div className="text-center py-8 text-gray-400">Loading...</div>
+          <div className="text-center py-8 text-ink-mute">Loading...</div>
         ) : myEvents.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 bg-white rounded-2xl border border-purple-100">
+          <div className="text-center py-8 text-ink-mute card-editorial">
             <p className="text-4xl mb-2">🎈</p>
             <p>No events yet. Create one or join with a code!</p>
           </div>
@@ -166,26 +166,26 @@ export default function CreateEvent({ user }) {
               <motion.button
                 key={event.id}
                 onClick={() => navigate(`/event/${event.id}`)}
-                className="w-full bg-white rounded-2xl p-4 shadow-sm border border-purple-100 text-left hover:shadow-md transition-shadow"
+                className="w-full card-editorial p-4 text-left hover:shadow-[6px_6px_0_0_#181410] transition-shadow"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-gray-800">{event.name}</h4>
-                    <p className="text-xs text-gray-400">
+                    <h4 className="font-bold text-ink">{event.name}</h4>
+                    <p className="text-xs text-ink-mute">
                       {event.members?.length || 1} members &middot; Code:{" "}
-                      <span className="font-mono font-bold text-purple-500">
+                      <span className="font-mono font-bold text-brand">
                         {event.code}
                       </span>
                     </p>
                   </div>
                   <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                    className={`mono-label px-3 py-1 rounded-full ${
                       event.phase === "complete"
                         ? "bg-green-100 text-green-700"
-                        : "bg-purple-100 text-purple-700"
+                        : "bg-brand-bg text-brand"
                     }`}
                   >
                     {event.phase}

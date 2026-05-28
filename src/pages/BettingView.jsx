@@ -98,7 +98,6 @@ export default function BettingView({ user }) {
     setBetting(prediction.id);
 
     try {
-      // Compute impliedProbAtBet for Brier score (Batch 4)
       let impliedProbAtBet = 0.5;
       if (prediction.type === "multi") {
         const outcomes = prediction.outcomes || [];
@@ -108,7 +107,6 @@ export default function BettingView({ user }) {
         impliedProbAtBet = side === "yes" ? prob : 1 - prob;
       }
 
-      // Add bet document
       await addDoc(collection(db, "events", eventId, "bets"), {
         predictionId: prediction.id,
         userId: user.uid,
@@ -119,9 +117,7 @@ export default function BettingView({ user }) {
         createdAt: serverTimestamp(),
       });
 
-      // Update prediction totals
       if (prediction.type === "multi") {
-        // Multi-outcome: use transaction to update specific outcome's totalBets
         const predRef = doc(db, "events", eventId, "predictions", prediction.id);
         await runTransaction(db, async (transaction) => {
           const predDoc = await transaction.get(predRef);
@@ -133,7 +129,6 @@ export default function BettingView({ user }) {
           transaction.update(predRef, { outcomes: updatedOutcomes });
         });
       } else {
-        // Binary / overunder / conditional
         await updateDoc(
           doc(db, "events", eventId, "predictions", prediction.id),
           {
@@ -142,7 +137,6 @@ export default function BettingView({ user }) {
         );
       }
 
-      // Deduct from balance
       await updateDoc(doc(db, "events", eventId, "balances", user.uid), {
         balance: increment(-BET_AMOUNT),
       });
@@ -158,16 +152,16 @@ export default function BettingView({ user }) {
     <div className="space-y-5">
       <button
         onClick={() => navigate(`/event/${eventId}`)}
-        className="text-purple-500 font-semibold text-sm hover:text-purple-700"
+        className="text-brand font-semibold text-sm hover:text-ink-soft"
       >
         &larr; Back to Event
       </button>
 
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-extrabold text-purple-800">
+        <h2 className="text-2xl font-serif italic text-ink">
           Place Your Bets
         </h2>
-        <div className="bg-purple-100 text-purple-700 font-bold px-4 py-2 rounded-full text-sm">
+        <div className="bg-brand-bg text-brand font-bold px-4 py-2 rounded-full mono-label">
           Balance: {formatCurrency(balance)}
         </div>
       </div>
@@ -178,8 +172,8 @@ export default function BettingView({ user }) {
           onClick={() => setCategoryFilter("all")}
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             categoryFilter === "all"
-              ? "bg-purple-500 text-white"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              ? "bg-brand text-white"
+              : "bg-cream text-ink-mute hover:bg-cream-dark"
           }`}
         >
           All
@@ -190,8 +184,8 @@ export default function BettingView({ user }) {
             onClick={() => setCategoryFilter(cat.id)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               categoryFilter === cat.id
-                ? cat.color + " ring-2 ring-offset-1 ring-purple-400"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                ? cat.color + " ring-2 ring-offset-1 ring-brand"
+                : "bg-cream text-ink-mute hover:bg-cream-dark"
             }`}
           >
             {cat.emoji} {cat.label}
@@ -200,7 +194,7 @@ export default function BettingView({ user }) {
       </div>
 
       {balance < BET_AMOUNT && (
-        <div className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl">
+        <div className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl border border-red-200">
           You don't have enough funds to place more bets.
         </div>
       )}
@@ -226,13 +220,13 @@ export default function BettingView({ user }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
-                className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+                className="card-editorial p-5"
               >
-                <p className="text-base font-semibold text-gray-800 mb-1">
+                <p className="text-base font-semibold text-ink mb-1">
                   {pred.text}
                 </p>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-ink-mute">
                     by {pred.creatorName}
                   </span>
                   {categoryObj && (
@@ -241,7 +235,7 @@ export default function BettingView({ user }) {
                     </span>
                   )}
                   {pred.taggedMembers?.length > 0 && (
-                    <span className="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-brand-bg text-brand px-2 py-0.5 rounded-full">
                       feat. {pred.taggedMembers.map((m) => m.name).join(", ")}
                     </span>
                   )}
@@ -252,12 +246,11 @@ export default function BettingView({ user }) {
                   )}
                 </div>
                 {pred.resolutionCriteria && (
-                  <p className="text-xs text-gray-400 italic mb-3">
+                  <p className="text-xs text-ink-mute italic mb-3">
                     {"\u2696\uFE0F"} {pred.resolutionCriteria}
                   </p>
                 )}
 
-                {/* Conditional badge */}
                 {isConditional && pred.condition && (
                   <ConditionalBadge
                     condition={pred.condition}
@@ -265,7 +258,6 @@ export default function BettingView({ user }) {
                   />
                 )}
 
-                {/* Multi-outcome odds */}
                 {isMulti && pred.outcomes && (
                   <div className="mb-3">
                     <MultiOutcomeOdds
@@ -277,7 +269,6 @@ export default function BettingView({ user }) {
                   </div>
                 )}
 
-                {/* Over/Under odds */}
                 {isOverUnder && (
                   <div className="mb-3">
                     <OverUnderOdds
@@ -293,11 +284,10 @@ export default function BettingView({ user }) {
                   </div>
                 )}
 
-                {/* Binary / Conditional odds display */}
                 {(isBinary || isConditional) && dualOdds && (
                   <div className="flex gap-2 mb-3 text-center">
                     <div className="flex-1 bg-green-50 rounded-xl py-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">YES</span>
+                      <span className="mono-label text-ink-mute">YES</span>
                       <p>
                         <AnimatedNumber
                           value={dualOdds.yes.percent}
@@ -305,12 +295,12 @@ export default function BettingView({ user }) {
                           className="text-2xl font-extrabold text-green-600"
                         />
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-ink-mute">
                         $10 {"\u2192"} <AnimatedNumber value={dualOdds.yes.payout} format="currency" className="text-xs" />
                       </p>
                     </div>
                     <div className="flex-1 bg-red-50 rounded-xl py-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">NO</span>
+                      <span className="mono-label text-ink-mute">NO</span>
                       <p>
                         <AnimatedNumber
                           value={dualOdds.no.percent}
@@ -318,18 +308,16 @@ export default function BettingView({ user }) {
                           className="text-2xl font-extrabold text-red-500"
                         />
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-ink-mute">
                         $10 {"\u2192"} <AnimatedNumber value={dualOdds.no.payout} format="currency" className="text-xs" />
                       </p>
                     </div>
                   </div>
                 )}
 
-                {/* Who bet what pills */}
                 {predBets.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {predBets.slice(0, 5).map((bet, j) => {
-                      // For multi, show outcome label; for binary, show YES/NO
                       let sideLabel = bet.side.toUpperCase();
                       if (isMulti && pred.outcomes) {
                         const outcome = pred.outcomes.find((o) => o.id === bet.side);
@@ -346,7 +334,7 @@ export default function BettingView({ user }) {
                               ? "bg-green-100 text-green-700"
                               : bet.side === "no"
                               ? "bg-red-100 text-red-700"
-                              : "bg-purple-100 text-purple-700"
+                              : "bg-brand-bg text-brand"
                           }`}
                         >
                           {bet.userName?.split(" ")[0]}: {sideLabel}
@@ -354,22 +342,21 @@ export default function BettingView({ user }) {
                       );
                     })}
                     {predBets.length > 5 && (
-                      <span className="text-xs text-gray-400 px-2 py-0.5">
+                      <span className="text-xs text-ink-mute px-2 py-0.5">
                         +{predBets.length - 5} more
                       </span>
                     )}
                   </div>
                 )}
 
-                {/* Bet buttons — only for binary / conditional */}
                 {(isBinary || isConditional) && !isMulti && !isOverUnder && (
                   <>
                     {alreadyBet ? (
                       <div
-                        className={`text-center py-2 rounded-full text-sm font-bold ${
+                        className={`text-center py-2 rounded-xl text-sm font-bold border-2 ${
                           alreadyBet === "yes"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-green-100 text-green-700 border-green-300"
+                            : "bg-red-100 text-red-700 border-red-300"
                         }`}
                       >
                         You bet {alreadyBet.toUpperCase()}
@@ -379,7 +366,7 @@ export default function BettingView({ user }) {
                         <motion.button
                           onClick={() => placeBet(pred, "yes")}
                           disabled={isBetting || balance < BET_AMOUNT}
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50 transition-colors"
                           whileTap={{ scale: 0.95 }}
                         >
                           {isBetting ? "..." : `YES ($${BET_AMOUNT})`}
@@ -387,7 +374,7 @@ export default function BettingView({ user }) {
                         <motion.button
                           onClick={() => placeBet(pred, "no")}
                           disabled={isBetting || balance < BET_AMOUNT}
-                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50 transition-colors"
                           whileTap={{ scale: 0.95 }}
                         >
                           {isBetting ? "..." : `NO ($${BET_AMOUNT})`}
@@ -403,7 +390,7 @@ export default function BettingView({ user }) {
       </AnimatePresence>
 
       {predictions.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-ink-mute">
           <p className="text-4xl mb-2">{"\uD83C\uDFAF"}</p>
           <p>No predictions available for you to bet on.</p>
         </div>

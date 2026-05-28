@@ -84,19 +84,19 @@ export default function JoinEvent({ user }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-extrabold text-purple-800 mb-1">
+        <h2 className="text-2xl font-serif italic text-ink mb-1">
           Join an Event
         </h2>
-        <p className="text-gray-500">Enter the 6-character code from your friend.</p>
+        <p className="text-ink-mute">Enter the 6-character code from your friend.</p>
       </div>
 
       <motion.form
         onSubmit={handleJoin}
-        className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+        className="card-editorial p-5"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <label className="block text-sm font-semibold text-purple-700 mb-2">
+        <label className="block mono-label text-ink-soft mb-2">
           Event Code
         </label>
         <input
@@ -107,7 +107,7 @@ export default function JoinEvent({ user }) {
             setError(null);
           }}
           placeholder="ABC123"
-          className="w-full px-4 py-4 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-center text-2xl font-mono font-bold tracking-widest text-purple-700 placeholder:text-gray-300"
+          className="w-full px-4 py-4 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-center text-2xl font-mono font-bold tracking-widest text-ink placeholder:text-ink-mute/50"
           maxLength={6}
         />
 
@@ -124,7 +124,7 @@ export default function JoinEvent({ user }) {
         <motion.button
           type="submit"
           disabled={joining || code.trim().length !== 6}
-          className="mt-4 w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold py-3 rounded-full shadow-lg disabled:opacity-50"
+          className="mt-4 w-full bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410] disabled:opacity-50"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

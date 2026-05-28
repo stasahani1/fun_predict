@@ -100,14 +100,14 @@ export default function EventDashboard({ user }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-300 border-t-purple-600" />
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-rule-dark border-t-brand" />
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="text-center py-20 text-gray-400">Event not found.</div>
+      <div className="text-center py-20 text-ink-mute">Event not found.</div>
     );
   }
 
@@ -117,15 +117,15 @@ export default function EventDashboard({ user }) {
     <div className="space-y-5">
       {/* Event Header */}
       <div>
-        <h2 className="text-2xl font-extrabold text-purple-800">{event.name}</h2>
+        <h2 className="text-2xl font-serif italic text-ink">{event.name}</h2>
         <div className="flex items-center gap-2 mt-1">
           <button
             onClick={copyCode}
-            className="text-sm font-mono font-bold bg-purple-100 text-purple-600 px-3 py-1 rounded-full hover:bg-purple-200 transition-colors"
+            className="mono-label font-bold bg-brand-bg text-brand px-3 py-1 rounded-full hover:bg-brand-soft transition-colors"
           >
             {copied ? "Copied!" : `Code: ${event.code}`}
           </button>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-ink-mute">
             {event.members?.length || 1} members
           </span>
         </div>
@@ -139,7 +139,7 @@ export default function EventDashboard({ user }) {
         {event.phase === "posting" && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/post`)}
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold py-3 rounded-full shadow-lg"
+            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -149,7 +149,7 @@ export default function EventDashboard({ user }) {
         {event.phase === "betting" && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/bet`)}
-            className="flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold py-3 rounded-full shadow-lg"
+            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -159,7 +159,7 @@ export default function EventDashboard({ user }) {
         {event.phase === "live" && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/live`)}
-            className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-full shadow-lg"
+            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -169,7 +169,7 @@ export default function EventDashboard({ user }) {
         {event.phase === "resolving" && isCreator && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/resolve`)}
-            className="flex-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold py-3 rounded-full shadow-lg"
+            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -179,7 +179,7 @@ export default function EventDashboard({ user }) {
         {event.phase === "complete" && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/results`)}
-            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-3 rounded-full shadow-lg"
+            className="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -192,7 +192,7 @@ export default function EventDashboard({ user }) {
       {isCreator && nextPhase && (
         <motion.button
           onClick={advancePhase}
-          className="w-full border-2 border-purple-300 text-purple-600 font-bold py-3 rounded-full hover:bg-purple-50 transition-colors"
+          className="w-full border-2 border-rule-dark text-brand font-bold py-3 rounded-xl hover:bg-brand-bg transition-colors"
           whileTap={{ scale: 0.98 }}
         >
           Advance to {PHASE_CONFIG[nextPhase]?.label || nextPhase}
@@ -209,7 +209,7 @@ export default function EventDashboard({ user }) {
           <div>
             <button
               onClick={() => setShowAboutMe(!showAboutMe)}
-              className="w-full text-left bg-pink-50 border border-pink-200 text-pink-700 font-semibold text-sm px-4 py-3 rounded-xl hover:bg-pink-100 transition-colors"
+              className="w-full text-left bg-brand-bg border-2 border-rule-dark text-brand font-semibold text-sm px-4 py-3 rounded-xl hover:bg-brand-soft transition-colors"
             >
               {"\uD83C\uDFAF"} Predictions About You ({aboutMe.length}){" "}
               {showAboutMe ? "\u25B4" : "\u25BE"}
@@ -243,7 +243,7 @@ export default function EventDashboard({ user }) {
       {/* Predictions list */}
       {predictions.length > 0 && (
         <div>
-          <h3 className="font-bold text-purple-800 mb-3">
+          <h3 className="font-bold text-ink mb-3">
             Predictions ({predictions.length})
           </h3>
           <div className="space-y-3">
@@ -268,13 +268,13 @@ export default function EventDashboard({ user }) {
       )}
 
       {/* Members */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
-        <h3 className="font-bold text-purple-800 mb-3">Members</h3>
+      <div className="card-editorial p-4">
+        <h3 className="font-bold text-ink mb-3">Members</h3>
         <div className="flex flex-wrap gap-2">
           {event.members?.map((m) => (
             <span
               key={m.uid}
-              className="bg-purple-50 text-purple-700 text-sm font-medium px-3 py-1 rounded-full"
+              className="bg-brand-bg text-brand text-sm font-medium px-3 py-1 rounded-full"
             >
               {m.name}
               {m.uid === event.creatorId && " (host)"}

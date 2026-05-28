@@ -25,12 +25,10 @@ export default function Profile({ user }) {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        // Load user gamification doc
         const userSnap = await getDoc(doc(db, "users", user.uid));
         const userData = userSnap.exists() ? userSnap.data() : {};
         setUserDoc(userData);
 
-        // Query all events where user is a member
         const eventsSnap = await getDocs(collection(db, "events"));
         const userEvents = [];
 
@@ -86,7 +84,6 @@ export default function Profile({ user }) {
                   : bet.side === pred.resolution;
                 if (won) {
                   totalWins++;
-                  // Check contrarian
                   if (pred.type === "multi") {
                     const outcomes = pred.outcomes || [];
                     const total = outcomes.reduce((s, o) => s + (o.totalBets || 0), 0);
@@ -102,7 +99,6 @@ export default function Profile({ user }) {
                     }
                   }
                 }
-                // Tagged bets
                 if (pred.type === "tagged" || (pred.taggedMembers && pred.taggedMembers.length > 0)) {
                   taggedBets++;
                   if (won) taggedWins++;
@@ -141,7 +137,6 @@ export default function Profile({ user }) {
           winRate: Math.round(winRate * 100),
         });
 
-        // Compute badges
         const badgeStats = {
           winRate,
           totalBets,
@@ -170,7 +165,7 @@ export default function Profile({ user }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-purple-300 border-t-purple-600" />
+        <div className="animate-spin rounded-full h-10 w-10 border-4 border-rule-dark border-t-brand" />
       </div>
     );
   }
@@ -191,7 +186,7 @@ export default function Profile({ user }) {
     <div className="space-y-5">
       {/* Profile header */}
       <motion.div
-        className="bg-gradient-to-r from-purple-600 to-pink-500 rounded-2xl p-5 text-white text-center"
+        className="card-editorial-hero p-5 bg-brand text-white text-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -202,56 +197,55 @@ export default function Profile({ user }) {
             className="w-20 h-20 rounded-full mx-auto ring-4 ring-white/30 mb-3"
           />
         )}
-        <h2 className="text-2xl font-extrabold">{user.displayName}</h2>
+        <h2 className="text-2xl font-serif italic">{user.displayName}</h2>
         {memberSince && (
-          <p className="text-sm opacity-80 mt-1">Member since {memberSince}</p>
+          <p className="mono-label opacity-80 mt-1">Member since {memberSince}</p>
         )}
       </motion.div>
 
       {/* All-time stats */}
       {stats && (
         <motion.div
-          className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+          className="card-editorial p-5"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h3 className="font-bold text-purple-800 mb-3">All-Time Stats</h3>
+          <h3 className="font-bold text-ink mb-3">All-Time Stats</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-extrabold text-purple-700 tabular-nums">
+            <div className="bg-cream rounded-xl p-3 text-center border border-rule">
+              <p className="text-2xl font-extrabold text-ink tabular-nums font-mono">
                 {stats.totalEvents}
               </p>
-              <p className="text-xs text-gray-500">Events</p>
+              <p className="mono-label text-ink-mute">Events</p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-extrabold text-purple-700 tabular-nums">
+            <div className="bg-cream rounded-xl p-3 text-center border border-rule">
+              <p className="text-2xl font-extrabold text-ink tabular-nums font-mono">
                 {stats.totalBets}
               </p>
-              <p className="text-xs text-gray-500">Total Bets</p>
+              <p className="mono-label text-ink-mute">Total Bets</p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
+            <div className="bg-cream rounded-xl p-3 text-center border border-rule">
               <p
-                className={`text-2xl font-extrabold tabular-nums ${
+                className={`text-2xl font-extrabold tabular-nums font-mono ${
                   stats.netWinnings >= 0 ? "text-green-600" : "text-red-500"
                 }`}
               >
                 {stats.netWinnings >= 0 ? "+" : ""}
                 {formatCurrency(stats.netWinnings)}
               </p>
-              <p className="text-xs text-gray-500">Net Winnings</p>
+              <p className="mono-label text-ink-mute">Net Winnings</p>
             </div>
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-extrabold text-purple-700 tabular-nums">
+            <div className="bg-cream rounded-xl p-3 text-center border border-rule">
+              <p className="text-2xl font-extrabold text-ink tabular-nums font-mono">
                 {stats.winRate}%
               </p>
-              <p className="text-xs text-gray-500">Win Rate</p>
+              <p className="mono-label text-ink-mute">Win Rate</p>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* Brier Score Card (Batch 4) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -263,7 +257,6 @@ export default function Profile({ user }) {
         />
       </motion.div>
 
-      {/* Streak Display (Batch 4) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -275,26 +268,24 @@ export default function Profile({ user }) {
         />
       </motion.div>
 
-      {/* Badges (Batch 4) */}
       <motion.div
-        className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+        className="card-editorial p-5"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <h3 className="font-bold text-purple-800 mb-3">Badges</h3>
+        <h3 className="font-bold text-ink mb-3">Badges</h3>
         <BadgeDisplay earnedBadges={badges} large />
       </motion.div>
 
-      {/* Event history */}
       {events.length > 0 && (
         <motion.div
-          className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100"
+          className="card-editorial p-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="font-bold text-purple-800 mb-3">Event History</h3>
+          <h3 className="font-bold text-ink mb-3">Event History</h3>
           <div className="space-y-2">
             {events.map((evt, i) => (
               <motion.button
@@ -303,27 +294,27 @@ export default function Profile({ user }) {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-purple-50 transition-colors text-left"
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-cream hover:bg-cream-dark transition-colors text-left border border-rule"
               >
                 <div>
-                  <p className="font-semibold text-gray-800 text-sm">
+                  <p className="font-semibold text-ink text-sm">
                     {evt.name}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ink-mute">
                     {evt.phase === "complete" ? "Completed" : evt.phase}
                   </p>
                 </div>
                 <div className="text-right">
                   {evt.phase === "complete" && (
                     <>
-                      <p className="text-sm font-bold text-purple-700">
+                      <p className="text-sm font-bold text-ink font-mono">
                         #{evt.rank}
-                        <span className="text-gray-400 font-normal">
+                        <span className="text-ink-mute font-normal">
                           /{evt.total}
                         </span>
                       </p>
                       <p
-                        className={`text-xs font-medium tabular-nums ${
+                        className={`text-xs font-medium tabular-nums font-mono ${
                           evt.netProfit >= 0
                             ? "text-green-600"
                             : "text-red-500"
@@ -335,7 +326,7 @@ export default function Profile({ user }) {
                     </>
                   )}
                   {evt.phase !== "complete" && (
-                    <span className="text-xs text-purple-500 font-medium">
+                    <span className="mono-label text-brand">
                       In progress
                     </span>
                   )}
@@ -347,7 +338,7 @@ export default function Profile({ user }) {
       )}
 
       {events.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-ink-mute">
           <p className="text-4xl mb-2">{"\uD83C\uDFAE"}</p>
           <p>No events yet. Create or join one to get started!</p>
         </div>

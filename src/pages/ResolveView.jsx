@@ -47,12 +47,10 @@ export default function ResolveView({ user }) {
     try {
       const updateData = { resolution };
 
-      // Over/Under: store actualValue
       if (pred.type === "overunder" && actualValues[pred.id] !== undefined) {
         updateData.actualValue = parseFloat(actualValues[pred.id]);
       }
 
-      // Conditional: store conditionMet
       if (pred.type === "conditional") {
         updateData.conditionMet = resolution !== "void";
       }
@@ -62,7 +60,6 @@ export default function ResolveView({ user }) {
         updateData
       );
 
-      // Get all bets for this prediction
       const betsSnap = await getDocs(
         collection(db, "events", eventId, "bets")
       );
@@ -74,7 +71,6 @@ export default function ResolveView({ user }) {
         }
       });
 
-      // Calculate payout based on type
       let payout;
       if (pred.type === "multi") {
         payout = multiCalculatePayout(pred.outcomes || [], resolution);
@@ -96,7 +92,6 @@ export default function ResolveView({ user }) {
         }
 
         if (resolution === "void") {
-          // Refund everyone
           const balSnap = await getDoc(balRef);
           if (balSnap.exists()) {
             const current = balSnap.data();
@@ -105,7 +100,6 @@ export default function ResolveView({ user }) {
             });
           }
         } else if (won) {
-          // Winner gets payout
           const balSnap = await getDoc(balRef);
           if (balSnap.exists()) {
             const current = balSnap.data();
@@ -115,7 +109,6 @@ export default function ResolveView({ user }) {
             });
           }
         } else {
-          // Loser: record loss in netProfit
           const balSnap = await getDoc(balRef);
           if (balSnap.exists()) {
             const current = balSnap.data();
@@ -125,7 +118,6 @@ export default function ResolveView({ user }) {
           }
         }
 
-        // Update user gamification stats (Batch 4)
         if (resolution !== "void") {
           try {
             const userSnap = await getDoc(userDocRef);
@@ -182,7 +174,6 @@ export default function ResolveView({ user }) {
         doc(db, "events", eventId, "predictions", pred.id),
         { resolution: "void", conditionMet: false }
       );
-      // Refund all bets
       const betsSnap = await getDocs(
         collection(db, "events", eventId, "bets")
       );
@@ -191,10 +182,8 @@ export default function ResolveView({ user }) {
         const bet = d.data();
         if (bet.predictionId === pred.id) {
           const balRef = doc(db, "events", eventId, "balances", bet.userId);
-          // We need to read first — done below
         }
       });
-      // Re-read and refund
       for (const d of betsSnap.docs) {
         const bet = d.data();
         if (bet.predictionId === pred.id) {
@@ -226,15 +215,15 @@ export default function ResolveView({ user }) {
     <div className="space-y-5">
       <button
         onClick={() => navigate(`/event/${eventId}`)}
-        className="text-purple-500 font-semibold text-sm hover:text-purple-700"
+        className="text-brand font-semibold text-sm hover:text-ink-soft"
       >
         &larr; Back to Event
       </button>
 
-      <h2 className="text-2xl font-extrabold text-purple-800">
+      <h2 className="text-2xl font-serif italic text-ink">
         Resolve Predictions
       </h2>
-      <p className="text-gray-500 text-sm">
+      <p className="text-ink-mute text-sm">
         Mark each prediction as what actually happened.
       </p>
 
@@ -251,25 +240,25 @@ export default function ResolveView({ user }) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
-              className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100"
+              className="card-editorial p-5"
             >
-              <p className="text-base font-semibold text-gray-800 mb-1">
+              <p className="text-base font-semibold text-ink mb-1">
                 {pred.text}
               </p>
 
               {isMulti ? (
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-ink-mute mb-3">
                   {(pred.outcomes || []).map((o) => `${o.label}: ${o.totalBets || 0}`).join(" / ")} bets
                 </p>
               ) : (
-                <p className="text-xs text-gray-400 mb-3">
+                <p className="text-xs text-ink-mute mb-3">
                   {pred.totalYes} {isOverUnder ? "OVER" : "YES"} / {pred.totalNo}{" "}
                   {isOverUnder ? "UNDER" : "NO"} bets
                 </p>
               )}
 
               {pred.resolutionCriteria && !pred.resolution && (
-                <div className="bg-yellow-50 text-yellow-700 text-sm rounded-xl p-3 mb-3">
+                <div className="bg-yellow-50 text-yellow-700 text-sm rounded-xl p-3 mb-3 border border-yellow-200">
                   <span className="font-semibold">{"\u2696\uFE0F"} Resolution criteria:</span>{" "}
                   {pred.resolutionCriteria}
                 </div>
@@ -277,14 +266,14 @@ export default function ResolveView({ user }) {
 
               {pred.resolution ? (
                 <div
-                  className={`text-center py-2 rounded-full text-sm font-bold ${
+                  className={`text-center py-2 rounded-xl text-sm font-bold border-2 ${
                     pred.resolution === "yes"
-                      ? "bg-green-100 text-green-700"
+                      ? "bg-green-100 text-green-700 border-green-300"
                       : pred.resolution === "no"
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 text-red-700 border-red-300"
                       : pred.resolution === "void"
-                      ? "bg-gray-100 text-gray-500"
-                      : "bg-purple-100 text-purple-700"
+                      ? "bg-gray-100 text-gray-500 border-gray-300"
+                      : "bg-brand-bg text-brand border-rule-dark"
                   }`}
                 >
                   {(() => {
@@ -313,10 +302,9 @@ export default function ResolveView({ user }) {
                 </div>
               ) : (
                 <>
-                  {/* Multi-outcome resolution */}
                   {isMulti && (
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-purple-700 mb-1">
+                      <p className="mono-label text-ink-soft mb-1">
                         Pick the winning outcome:
                       </p>
                       {(pred.outcomes || []).map((outcome) => (
@@ -324,7 +312,7 @@ export default function ResolveView({ user }) {
                           key={outcome.id}
                           onClick={() => resolvePrediction(pred, outcome.id)}
                           disabled={isResolving}
-                          className="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold py-2 px-4 rounded-xl disabled:opacity-50 text-left text-sm"
+                          className="w-full bg-brand-bg hover:bg-brand-soft text-brand font-bold py-2 px-4 rounded-xl disabled:opacity-50 text-left text-sm border border-rule-dark"
                           whileTap={{ scale: 0.98 }}
                         >
                           {isResolving ? "..." : outcome.label}
@@ -341,10 +329,9 @@ export default function ResolveView({ user }) {
                     </div>
                   )}
 
-                  {/* Over/Under resolution */}
                   {isOverUnder && (
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-purple-700 mb-1">
+                      <p className="mono-label text-ink-soft mb-1">
                         Line: {pred.line} {pred.unit}
                       </p>
                       <input
@@ -358,13 +345,13 @@ export default function ResolveView({ user }) {
                         }
                         placeholder="Enter actual value"
                         step="0.5"
-                        className="w-full px-4 py-2 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+                        className="w-full px-4 py-2 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-sm"
                       />
                       <div className="flex gap-2">
                         <motion.button
                           onClick={() => handleOverUnderResolve(pred)}
                           disabled={isResolving || !actualValues[pred.id]}
-                          className="flex-1 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl disabled:opacity-50 text-sm"
+                          className="flex-1 bg-brand hover:bg-brand/90 text-white font-bold py-2 rounded-xl border-2 border-ink disabled:opacity-50 text-sm"
                           whileTap={{ scale: 0.95 }}
                         >
                           {isResolving ? "..." : "Resolve"}
@@ -381,17 +368,16 @@ export default function ResolveView({ user }) {
                     </div>
                   )}
 
-                  {/* Conditional resolution — two-step */}
                   {isConditional && (
                     <div>
                       {pred.condition && (
-                        <div className="bg-blue-50 text-blue-700 text-sm rounded-xl p-3 mb-3">
+                        <div className="bg-blue-100 text-blue-700 text-sm rounded-xl p-3 mb-3 border border-blue-200">
                           <span className="font-semibold">IF:</span> {pred.condition}
                         </div>
                       )}
                       {conditionSteps[pred.id] !== "met" ? (
                         <div className="space-y-2">
-                          <p className="text-xs font-semibold text-purple-700">
+                          <p className="mono-label text-ink-soft">
                             Was the condition met?
                           </p>
                           <div className="flex gap-2">
@@ -403,7 +389,7 @@ export default function ResolveView({ user }) {
                                 }))
                               }
                               disabled={isResolving}
-                              className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl disabled:opacity-50 text-sm"
+                              className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-xl border-2 border-ink disabled:opacity-50 text-sm"
                               whileTap={{ scale: 0.95 }}
                             >
                               Yes, condition met
@@ -423,7 +409,7 @@ export default function ResolveView({ user }) {
                           <motion.button
                             onClick={() => resolvePrediction(pred, "yes")}
                             disabled={isResolving}
-                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-full disabled:opacity-50"
+                            className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50"
                             whileTap={{ scale: 0.95 }}
                           >
                             {isResolving ? "..." : "Happened"}
@@ -431,7 +417,7 @@ export default function ResolveView({ user }) {
                           <motion.button
                             onClick={() => resolvePrediction(pred, "no")}
                             disabled={isResolving}
-                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-full disabled:opacity-50"
+                            className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50"
                             whileTap={{ scale: 0.95 }}
                           >
                             {isResolving ? "..." : "Didn't happen"}
@@ -439,7 +425,7 @@ export default function ResolveView({ user }) {
                           <motion.button
                             onClick={() => resolvePrediction(pred, "void")}
                             disabled={isResolving}
-                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-4 rounded-full disabled:opacity-50"
+                            className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-4 rounded-xl disabled:opacity-50"
                             whileTap={{ scale: 0.95 }}
                           >
                             Void
@@ -449,13 +435,12 @@ export default function ResolveView({ user }) {
                     </div>
                   )}
 
-                  {/* Standard binary resolution */}
                   {!isMulti && !isOverUnder && !isConditional && (
                     <div className="flex gap-2">
                       <motion.button
                         onClick={() => resolvePrediction(pred, "yes")}
                         disabled={isResolving}
-                        className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-full disabled:opacity-50"
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50"
                         whileTap={{ scale: 0.95 }}
                       >
                         {isResolving ? "..." : "Happened"}
@@ -463,7 +448,7 @@ export default function ResolveView({ user }) {
                       <motion.button
                         onClick={() => resolvePrediction(pred, "no")}
                         disabled={isResolving}
-                        className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-full disabled:opacity-50"
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl border-2 border-ink disabled:opacity-50"
                         whileTap={{ scale: 0.95 }}
                       >
                         {isResolving ? "..." : "Didn't happen"}
@@ -471,7 +456,7 @@ export default function ResolveView({ user }) {
                       <motion.button
                         onClick={() => resolvePrediction(pred, "void")}
                         disabled={isResolving}
-                        className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-4 rounded-full disabled:opacity-50"
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-4 rounded-xl disabled:opacity-50"
                         whileTap={{ scale: 0.95 }}
                       >
                         Void
@@ -488,7 +473,7 @@ export default function ResolveView({ user }) {
       {allResolved && predictions.length > 0 && (
         <motion.button
           onClick={completeEvent}
-          className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-4 rounded-full shadow-lg text-lg"
+          className="w-full bg-green-500 text-white font-bold py-4 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410] text-lg"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}

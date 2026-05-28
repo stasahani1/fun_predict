@@ -4,7 +4,6 @@ import { brierScore } from "../utils/gamification";
 function computeAwards(predictions, balances, allBets) {
   const awards = [];
 
-  // Track per-user stats
   const userStats = {};
   const userBrierScores = {};
 
@@ -23,7 +22,6 @@ function computeAwards(predictions, balances, allBets) {
 
     userStats[bet.userId].total++;
 
-    // Determine if bet won
     let won = false;
     if (pred.type === "multi") {
       won = bet.side === pred.resolution;
@@ -35,13 +33,10 @@ function computeAwards(predictions, balances, allBets) {
       userStats[bet.userId].correct++;
     }
 
-    // Brier score calculation
     const impliedProb = bet.impliedProbAtBet ?? 0.5;
     userBrierScores[bet.userId].push(brierScore(impliedProb, won));
 
-    // Contrarian: bet against the majority
     if (pred.type === "multi") {
-      // For multi, contrarian = bet on outcome with below-average bets
       const outcomes = pred.outcomes || [];
       const totalBets = outcomes.reduce((s, o) => s + (o.totalBets || 0), 0);
       const avgBets = totalBets / outcomes.length;
@@ -61,7 +56,6 @@ function computeAwards(predictions, balances, allBets) {
     }
   }
 
-  // Oracle — highest accuracy (min 2 bets)
   let bestAccuracy = { name: null, rate: 0 };
   let worstAccuracy = { name: null, rate: 1 };
   let mostContrarian = { name: null, count: 0 };
@@ -89,7 +83,6 @@ function computeAwards(predictions, balances, allBets) {
     });
   }
 
-  // Most Predicted About — most tagged predictions
   const taggedCounts = {};
   for (const pred of predictions) {
     if (pred.taggedMembers) {
@@ -110,7 +103,6 @@ function computeAwards(predictions, balances, allBets) {
     });
   }
 
-  // Degen — most contrarian bets
   if (mostContrarian.name) {
     awards.push({
       emoji: "\uD83C\uDFB0",
@@ -120,7 +112,6 @@ function computeAwards(predictions, balances, allBets) {
     });
   }
 
-  // Big Winner — highest net profit
   const sorted = [...balances].sort((a, b) => b.netProfit - a.netProfit);
   if (sorted.length > 0 && sorted[0].netProfit > 0) {
     awards.push({
@@ -131,7 +122,6 @@ function computeAwards(predictions, balances, allBets) {
     });
   }
 
-  // Consistently Wrong — lowest accuracy (min 2 bets, and different from Oracle)
   if (worstAccuracy.name && worstAccuracy.name !== bestAccuracy.name) {
     awards.push({
       emoji: "\uD83E\uDD21",
@@ -141,7 +131,6 @@ function computeAwards(predictions, balances, allBets) {
     });
   }
 
-  // Calibration King — best per-event Brier score (Batch 4)
   let bestBrier = { name: null, score: 1 };
   for (const [userId, scores] of Object.entries(userBrierScores)) {
     if (scores.length < 2) continue;
@@ -168,8 +157,8 @@ export default function PersonalityAwards({ predictions, balances, allBets }) {
   if (awards.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-100">
-      <h3 className="font-bold text-purple-800 mb-3">
+    <div className="card-editorial p-4">
+      <h3 className="font-bold text-ink mb-3">
         {"\uD83C\uDFC6"} Personality Awards
       </h3>
       <div className="space-y-2">
@@ -179,14 +168,14 @@ export default function PersonalityAwards({ predictions, balances, allBets }) {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.15 }}
-            className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50"
+            className="flex items-center gap-3 p-3 rounded-xl bg-cream border border-rule"
           >
             <span className="text-2xl">{award.emoji}</span>
             <div className="flex-1">
-              <p className="text-sm font-bold text-purple-700">
+              <p className="text-sm font-bold text-ink">
                 {award.title}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-mute">
                 {award.recipient} &middot; {award.stat}
               </p>
             </div>

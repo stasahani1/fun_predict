@@ -24,9 +24,8 @@ export default function ShareReceiptButton({
         topBets,
       });
 
-      // Try Web Share API first
       if (navigator.share && navigator.canShare) {
-        const file = new File([blob], "fun-predict-receipt.png", {
+        const file = new File([blob], "hunch-receipt.png", {
           type: "image/png",
         });
         const shareData = { files: [file] };
@@ -36,11 +35,10 @@ export default function ShareReceiptButton({
         }
       }
 
-      // Fallback: download
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "fun-predict-receipt.png";
+      a.download = "hunch-receipt.png";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -58,7 +56,7 @@ export default function ShareReceiptButton({
     <motion.button
       onClick={handleShare}
       disabled={loading}
-      className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold py-3 rounded-full shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+      className="w-full bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410] disabled:opacity-50 flex items-center justify-center gap-2"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >

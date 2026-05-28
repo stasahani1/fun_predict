@@ -30,7 +30,6 @@ export default function PredictionCard({
     : prediction.totalYes + prediction.totalNo;
   const categoryObj = PREDICTION_CATEGORIES.find((c) => c.id === prediction.category);
 
-  // Track previous odds for directional indicator (binary only)
   const prevYesRef = useRef(dualOdds?.yes?.percent);
   const [oddsChange, setOddsChange] = useState(null);
 
@@ -48,7 +47,6 @@ export default function PredictionCard({
     prevYesRef.current = curr;
   }, [dualOdds?.yes?.percent, totalBets]);
 
-  // Social bets display
   const predBets = bets || [];
   const displayBets = predBets.slice(0, 5);
   const extraBets = predBets.length - 5;
@@ -58,13 +56,13 @@ export default function PredictionCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.3 }}
-      className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100 hover:shadow-md transition-shadow"
+      className="card-editorial p-5 hover:shadow-[6px_6px_0_0_#181410] transition-shadow"
     >
-      <p className="text-base font-semibold text-gray-800 mb-2">
+      <p className="text-base font-semibold text-ink mb-2">
         {prediction.text}
       </p>
       <div className="flex items-center gap-2 mb-1">
-        <span className="text-xs text-purple-500 font-medium">
+        <span className="text-xs text-brand font-medium">
           by {prediction.creatorName}
         </span>
         {categoryObj && (
@@ -73,7 +71,7 @@ export default function PredictionCard({
           </span>
         )}
         {prediction.taggedMembers?.length > 0 && (
-          <span className="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">
+          <span className="text-xs bg-brand-bg text-brand px-2 py-0.5 rounded-full">
             feat. {prediction.taggedMembers.map((m) => m.name).join(", ")}
           </span>
         )}
@@ -84,12 +82,11 @@ export default function PredictionCard({
         )}
       </div>
       {prediction.resolutionCriteria && (
-        <p className="text-xs text-gray-400 italic mb-3">
+        <p className="text-xs text-ink-mute italic mb-3">
           {"\u2696\uFE0F"} {prediction.resolutionCriteria}
         </p>
       )}
 
-      {/* Conditional badge */}
       {isConditional && prediction.condition && (
         <ConditionalBadge
           condition={prediction.condition}
@@ -97,7 +94,6 @@ export default function PredictionCard({
         />
       )}
 
-      {/* Multi-outcome odds (read-only in card) */}
       {showOdds && isMulti && prediction.outcomes && (
         <div className="mb-3">
           <MultiOutcomeOdds
@@ -107,7 +103,6 @@ export default function PredictionCard({
         </div>
       )}
 
-      {/* Over/Under odds (read-only in card) */}
       {showOdds && isOverUnder && (
         <div className="mb-3">
           <OverUnderOdds
@@ -121,11 +116,10 @@ export default function PredictionCard({
         </div>
       )}
 
-      {/* Binary / Conditional odds */}
       {showOdds && (isBinary || isConditional) && dualOdds && (
         <div className="flex gap-2 mb-3">
           <div className="flex-1 bg-green-50 rounded-xl p-2 text-center">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">YES</span>
+            <span className="mono-label text-ink-mute">YES</span>
             <div className="flex items-center justify-center gap-1">
               <AnimatedNumber
                 value={dualOdds.yes.percent}
@@ -145,12 +139,12 @@ export default function PredictionCard({
                 )}
               </AnimatePresence>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-ink-mute">
               $10 {"\u2192"} <AnimatedNumber value={dualOdds.yes.payout} format="currency" className="text-xs" />
             </p>
           </div>
           <div className="flex-1 bg-red-50 rounded-xl p-2 text-center">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">NO</span>
+            <span className="mono-label text-ink-mute">NO</span>
             <div className="flex items-center justify-center gap-1">
               <AnimatedNumber
                 value={dualOdds.no.percent}
@@ -170,14 +164,13 @@ export default function PredictionCard({
                 )}
               </AnimatePresence>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-ink-mute">
               $10 {"\u2192"} <AnimatedNumber value={dualOdds.no.payout} format="currency" className="text-xs" />
             </p>
           </div>
         </div>
       )}
 
-      {/* Social bets pills */}
       {predBets.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {displayBets.map((bet, i) => {
@@ -197,7 +190,7 @@ export default function PredictionCard({
                     ? "bg-green-100 text-green-700"
                     : bet.side === "no"
                     ? "bg-red-100 text-red-700"
-                    : "bg-purple-100 text-purple-700"
+                    : "bg-brand-bg text-brand"
                 }`}
               >
                 {bet.userName?.split(" ")[0]}: {sideLabel}
@@ -205,7 +198,7 @@ export default function PredictionCard({
             );
           })}
           {extraBets > 0 && (
-            <span className="text-xs text-gray-400 px-2 py-0.5">
+            <span className="text-xs text-ink-mute px-2 py-0.5">
               +{extraBets} more
             </span>
           )}
@@ -221,7 +214,7 @@ export default function PredictionCard({
               ? "bg-red-100 text-red-700"
               : prediction.resolution === "void"
               ? "bg-gray-100 text-gray-500"
-              : "bg-purple-100 text-purple-700"
+              : "bg-brand-bg text-brand"
           }`}
         >
           {(() => {

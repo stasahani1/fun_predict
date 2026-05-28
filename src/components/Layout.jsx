@@ -21,28 +21,28 @@ export default function Layout({ user }) {
   return (
     <div className="flex flex-col min-h-screen pb-20">
       {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-purple-100">
+      <header className="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b-2 border-ink">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <h1
-            className="text-xl font-extrabold gradient-text cursor-pointer"
+            className="text-2xl hunch-wordmark cursor-pointer"
             onClick={() => navigate("/home")}
           >
-            Fun Predict
+            hunch<span className="hunch-dot">.</span>
           </h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-purple-700 hidden sm:block">
+            <span className="text-sm font-medium text-ink-soft hidden sm:block">
               {user?.displayName?.split(" ")[0]}
             </span>
             {user?.photoURL && (
               <img
                 src={user.photoURL}
                 alt=""
-                className="w-8 h-8 rounded-full ring-2 ring-purple-300"
+                className="w-8 h-8 rounded-full ring-2 ring-rule-dark"
               />
             )}
             <button
               onClick={handleSignOut}
-              className="text-xs text-purple-400 hover:text-purple-600 font-semibold"
+              className="text-xs text-ink-mute hover:text-brand font-semibold"
             >
               Sign out
             </button>
@@ -63,7 +63,7 @@ export default function Layout({ user }) {
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-t border-purple-100">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-cream/90 backdrop-blur-md border-t-2 border-ink">
         <div className="max-w-lg mx-auto flex justify-around py-2">
           {navItems.map((item) => {
             const active = location.pathname === item.path;
@@ -73,8 +73,8 @@ export default function Layout({ user }) {
                 onClick={() => navigate(item.path)}
                 className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-xl transition-colors ${
                   active
-                    ? "text-purple-600"
-                    : "text-gray-400 hover:text-purple-400"
+                    ? "text-brand"
+                    : "text-ink-mute hover:text-brand"
                 }`}
               >
                 <span className="text-xl">{item.icon}</span>

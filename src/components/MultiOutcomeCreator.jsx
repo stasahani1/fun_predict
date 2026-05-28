@@ -32,7 +32,7 @@ export default function MultiOutcomeCreator({ outcomes, setOutcomes, members }) 
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-semibold text-purple-700">
+      <label className="block mono-label text-ink-soft">
         Outcomes (min 2, max 10)
       </label>
 
@@ -40,7 +40,7 @@ export default function MultiOutcomeCreator({ outcomes, setOutcomes, members }) 
         <button
           type="button"
           onClick={useTaggedMembers}
-          className="text-xs bg-pink-100 text-pink-600 px-3 py-1.5 rounded-full font-medium hover:bg-pink-200 transition-colors"
+          className="text-xs bg-brand-bg text-brand px-3 py-1.5 rounded-full font-medium hover:bg-brand-soft transition-colors"
         >
           Use event members as outcomes
         </button>
@@ -55,7 +55,7 @@ export default function MultiOutcomeCreator({ outcomes, setOutcomes, members }) 
             exit={{ opacity: 0, height: 0 }}
             className="flex items-center gap-2"
           >
-            <span className="flex-1 bg-purple-50 text-purple-700 font-medium px-3 py-2 rounded-xl text-sm">
+            <span className="flex-1 bg-brand-bg text-brand font-medium px-3 py-2 rounded-xl text-sm">
               {o.label}
             </span>
             {outcomes.length > 2 && (
@@ -79,21 +79,21 @@ export default function MultiOutcomeCreator({ outcomes, setOutcomes, members }) 
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addOutcome())}
             placeholder="Add an outcome..."
-            className="flex-1 px-3 py-2 rounded-xl border border-purple-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+            className="flex-1 px-3 py-2 rounded-xl border-2 border-rule-dark text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             maxLength={50}
           />
           <button
             type="button"
             onClick={addOutcome}
             disabled={!newLabel.trim()}
-            className="bg-purple-500 text-white font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-50 hover:bg-purple-600 transition-colors"
+            className="bg-brand text-white font-bold px-4 py-2 rounded-xl text-sm border-2 border-ink disabled:opacity-50 hover:bg-brand/90 transition-colors"
           >
             +
           </button>
         </div>
       )}
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-ink-mute">
         {outcomes.length}/10 outcomes
       </p>
     </div>

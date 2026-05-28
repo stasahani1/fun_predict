@@ -2,16 +2,16 @@ import { motion } from "framer-motion";
 import AnimatedNumber from "./AnimatedNumber";
 
 const COLORS = [
-  { bg: "bg-purple-100", text: "text-purple-700", bar: "bg-purple-500" },
-  { bg: "bg-pink-100", text: "text-pink-700", bar: "bg-pink-500" },
+  { bg: "bg-brand-bg", text: "text-brand", bar: "bg-brand" },
+  { bg: "bg-blue-100", text: "text-blue-700", bar: "bg-blue-500" },
+  { bg: "bg-green-100", text: "text-green-700", bar: "bg-green-500" },
+  { bg: "bg-yellow-50", text: "text-yellow-700", bar: "bg-yellow-500" },
+  { bg: "bg-red-100", text: "text-red-700", bar: "bg-red-500" },
+  { bg: "bg-cream-dark", text: "text-ink-soft", bar: "bg-ink-mute" },
   { bg: "bg-blue-100", text: "text-blue-700", bar: "bg-blue-500" },
   { bg: "bg-green-100", text: "text-green-700", bar: "bg-green-500" },
   { bg: "bg-orange-100", text: "text-orange-700", bar: "bg-orange-500" },
   { bg: "bg-red-100", text: "text-red-700", bar: "bg-red-500" },
-  { bg: "bg-teal-100", text: "text-teal-700", bar: "bg-teal-500" },
-  { bg: "bg-indigo-100", text: "text-indigo-700", bar: "bg-indigo-500" },
-  { bg: "bg-yellow-100", text: "text-yellow-700", bar: "bg-yellow-500" },
-  { bg: "bg-cyan-100", text: "text-cyan-700", bar: "bg-cyan-500" },
 ];
 
 export default function MultiOutcomeOdds({
@@ -46,12 +46,12 @@ export default function MultiOutcomeOdds({
             type="button"
             disabled={!isClickable}
             onClick={() => isClickable && onBet(outcome.id)}
-            className={`w-full text-left rounded-xl p-3 border transition-all ${
+            className={`w-full text-left rounded-xl p-3 border-2 transition-all ${
               isWinner
                 ? "border-green-400 bg-green-50 ring-2 ring-green-300"
                 : isUserBet
-                ? `border-purple-400 ${color.bg} ring-2 ring-purple-300`
-                : `border-gray-200 ${color.bg} hover:border-purple-300`
+                ? `border-brand ${color.bg} ring-2 ring-brand`
+                : `border-rule-dark ${color.bg} hover:border-brand`
             } ${isClickable ? "cursor-pointer" : "cursor-default"}`}
             whileTap={isClickable ? { scale: 0.98 } : {}}
           >
@@ -59,7 +59,7 @@ export default function MultiOutcomeOdds({
               <span className={`text-sm font-bold ${color.text}`}>
                 {outcome.label}
                 {isUserBet && (
-                  <span className="ml-2 text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-xs bg-brand text-white px-2 py-0.5 rounded-full">
                     Your bet
                   </span>
                 )}
@@ -76,14 +76,14 @@ export default function MultiOutcomeOdds({
                   className={`text-lg font-extrabold ${color.text}`}
                 />
                 {totalBets > 0 && outcome.totalBets > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-ink-mute">
                     $10 {"\u2192"} ${payout.toFixed(2)}
                   </span>
                 )}
               </div>
             </div>
             {/* Probability bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-rule rounded-full h-2 overflow-hidden">
               <motion.div
                 className={`h-full rounded-full ${color.bar}`}
                 initial={{ width: 0 }}
@@ -91,14 +91,14 @@ export default function MultiOutcomeOdds({
                 transition={{ duration: 0.5 }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-ink-mute mt-1">
               {outcome.totalBets || 0} bet{(outcome.totalBets || 0) !== 1 ? "s" : ""}
             </p>
           </motion.button>
         );
       })}
       {betting && (
-        <p className="text-center text-sm text-purple-500 font-medium animate-pulse">
+        <p className="text-center text-sm text-brand font-medium animate-pulse">
           Placing bet...
         </p>
       )}

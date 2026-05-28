@@ -83,7 +83,7 @@ export default function CommentThread({ eventId, predictionId, user }) {
     <div className="mt-3">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-xs text-purple-500 font-medium hover:text-purple-700 transition-colors"
+        className="text-xs text-brand font-medium hover:text-ink-soft transition-colors"
       >
         {"\uD83D\uDCAC"} {comments.length} comment{comments.length !== 1 ? "s" : ""}
         {expanded ? " \u25B4" : " \u25BE"}
@@ -112,22 +112,22 @@ export default function CommentThread({ eventId, predictionId, user }) {
                       className="w-6 h-6 rounded-full flex-shrink-0 mt-0.5"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-purple-200 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-xs text-purple-700">
+                    <div className="w-6 h-6 rounded-full bg-brand-bg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs text-brand">
                         {comment.userName?.[0] || "?"}
                       </span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-gray-700">
+                      <span className="text-xs font-semibold text-ink-soft">
                         {comment.userName?.split(" ")[0]}
                       </span>
-                      <span className="text-xs text-gray-300">
+                      <span className="text-xs text-ink-mute">
                         {timeAgo(comment.createdAt)}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 break-words">
+                    <p className="text-sm text-ink-soft break-words">
                       {comment.text}
                     </p>
                   </div>
@@ -135,7 +135,7 @@ export default function CommentThread({ eventId, predictionId, user }) {
               ))}
 
               {comments.length === 0 && (
-                <p className="text-xs text-gray-400 py-1">
+                <p className="text-xs text-ink-mute py-1">
                   No comments yet. Be the first!
                 </p>
               )}
@@ -148,12 +148,12 @@ export default function CommentThread({ eventId, predictionId, user }) {
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Add a comment..."
                 maxLength={280}
-                className="flex-1 text-sm px-3 py-2 rounded-full border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
+                className="flex-1 text-sm px-3 py-2 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50"
               />
               <button
                 type="submit"
                 disabled={!text.trim() || submitting}
-                className="bg-purple-500 text-white text-sm font-semibold px-4 py-2 rounded-full disabled:opacity-50 hover:bg-purple-600 transition-colors"
+                className="bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl border-2 border-ink disabled:opacity-50 hover:bg-brand/90 transition-colors"
               >
                 {submitting ? "..." : "Send"}
               </button>

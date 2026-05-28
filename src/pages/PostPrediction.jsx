@@ -14,11 +14,11 @@ import { generateTemplates } from "../utils/templates";
 import MultiOutcomeCreator from "../components/MultiOutcomeCreator";
 
 const PREDICTION_TYPES = [
-  { id: "open", label: "Open", emoji: "\uD83C\uDF0D", gradient: "from-purple-500 to-pink-500" },
-  { id: "tagged", label: "Tagged", emoji: "\uD83C\uDFF7\uFE0F", gradient: "from-pink-500 to-orange-400" },
-  { id: "multi", label: "Multi", emoji: "\uD83C\uDFB2", gradient: "from-blue-500 to-purple-500" },
-  { id: "overunder", label: "Over/Under", emoji: "\uD83D\uDCCA", gradient: "from-green-500 to-teal-500" },
-  { id: "conditional", label: "Conditional", emoji: "\u2753", gradient: "from-yellow-500 to-orange-500" },
+  { id: "open", label: "Open", emoji: "\uD83C\uDF0D" },
+  { id: "tagged", label: "Tagged", emoji: "\uD83C\uDFF7\uFE0F" },
+  { id: "multi", label: "Multi", emoji: "\uD83C\uDFB2" },
+  { id: "overunder", label: "Over/Under", emoji: "\uD83D\uDCCA" },
+  { id: "conditional", label: "Conditional", emoji: "\u2753" },
 ];
 
 export default function PostPrediction({ user }) {
@@ -148,24 +148,24 @@ export default function PostPrediction({ user }) {
     <div className="space-y-5">
       <button
         onClick={() => navigate(`/event/${eventId}`)}
-        className="text-purple-500 font-semibold text-sm hover:text-purple-700"
+        className="text-brand font-semibold text-sm hover:text-ink-soft"
       >
         &larr; Back to Event
       </button>
 
-      <h2 className="text-2xl font-extrabold text-purple-800">
+      <h2 className="text-2xl font-serif italic text-ink">
         Post a Prediction
       </h2>
 
       <motion.form
         onSubmit={handleSubmit}
-        className="bg-white rounded-2xl p-5 shadow-sm border border-purple-100 space-y-4"
+        className="card-editorial p-5 space-y-4"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        {/* Prediction type selector — 5 types in 2-row grid */}
+        {/* Prediction type selector */}
         <div>
-          <label className="block text-sm font-semibold text-purple-700 mb-2">
+          <label className="block mono-label text-ink-soft mb-2">
             Prediction Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -179,15 +179,15 @@ export default function PostPrediction({ user }) {
                 }}
                 className={`py-2.5 rounded-xl text-xs font-bold transition-colors ${
                   type === pt.id
-                    ? `bg-gradient-to-r ${pt.gradient} text-white shadow-md`
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    ? "bg-brand text-white border-2 border-ink shadow-[2px_2px_0_0_#181410]"
+                    : "bg-cream text-ink-soft hover:bg-cream-dark border-2 border-rule-dark"
                 }`}
               >
                 {pt.emoji} {pt.label}
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-ink-mute mt-2">
             {type === "open" && "Everyone can see and bet on this prediction."}
             {type === "tagged" && "Tag specific people — they won't be able to bet on it."}
             {type === "multi" && "Multiple outcomes — bettors pick which one will happen."}
@@ -198,7 +198,7 @@ export default function PostPrediction({ user }) {
 
         {/* Category selector */}
         <div>
-          <label className="block text-sm font-semibold text-purple-700 mb-2">
+          <label className="block mono-label text-ink-soft mb-2">
             Category
           </label>
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
@@ -209,8 +209,8 @@ export default function PostPrediction({ user }) {
                 onClick={() => setCategory(cat.id)}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   category === cat.id
-                    ? cat.color + " ring-2 ring-offset-1 ring-purple-400"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    ? cat.color + " ring-2 ring-offset-1 ring-brand"
+                    : "bg-cream text-ink-mute hover:bg-cream-dark"
                 }`}
               >
                 {cat.emoji} {cat.label}
@@ -222,10 +222,10 @@ export default function PostPrediction({ user }) {
         {/* Member tagging for tagged type */}
         {type === "tagged" && members.length > 0 && (
           <div>
-            <label className="block text-sm font-semibold text-purple-700 mb-2">
+            <label className="block mono-label text-ink-soft mb-2">
               Tag members involved
             </label>
-            <p className="text-xs text-gray-400 mb-2">
+            <p className="text-xs text-ink-mute mb-2">
               Tagged members won't be able to bet on this prediction.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -238,8 +238,8 @@ export default function PostPrediction({ user }) {
                     onClick={() => toggleTag(m)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                       isTagged
-                        ? "bg-pink-500 text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-purple-100"
+                        ? "bg-brand text-white"
+                        : "bg-cream text-ink-soft hover:bg-brand-bg"
                     }`}
                   >
                     {m.name}
@@ -250,10 +250,10 @@ export default function PostPrediction({ user }) {
           </div>
         )}
 
-        {/* Template pills (Batch 1) — only for tagged type with templates */}
+        {/* Template pills */}
         {type === "tagged" && templates.length > 0 && (
           <div>
-            <label className="block text-sm font-semibold text-purple-700 mb-2">
+            <label className="block mono-label text-ink-soft mb-2">
               Quick templates
             </label>
             <div className="flex flex-wrap gap-2">
@@ -262,7 +262,7 @@ export default function PostPrediction({ user }) {
                   key={i}
                   type="button"
                   onClick={() => applyTemplate(tmpl)}
-                  className="bg-purple-50 text-purple-700 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-purple-100 transition-colors border border-purple-200"
+                  className="bg-brand-bg text-brand text-xs font-medium px-3 py-1.5 rounded-full hover:bg-brand-soft transition-colors border border-rule-dark"
                 >
                   {tmpl.text}
                 </button>
@@ -274,7 +274,7 @@ export default function PostPrediction({ user }) {
         {/* Conditional form fields */}
         {type === "conditional" && (
           <div>
-            <label className="block text-sm font-semibold text-purple-700 mb-2">
+            <label className="block mono-label text-ink-soft mb-2">
               What's the condition?
             </label>
             <input
@@ -282,10 +282,10 @@ export default function PostPrediction({ user }) {
               value={condition}
               onChange={(e) => setCondition(e.target.value)}
               placeholder='e.g. "If we go to the bar"'
-              className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
+              className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50"
               maxLength={100}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-ink-mute mt-1">
               Prediction only resolves if this condition is met.
             </p>
           </div>
@@ -295,7 +295,7 @@ export default function PostPrediction({ user }) {
         {type === "overunder" && (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-semibold text-purple-700 mb-2">
+              <label className="block mono-label text-ink-soft mb-2">
                 What are we counting?
               </label>
               <input
@@ -303,12 +303,12 @@ export default function PostPrediction({ user }) {
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
                 placeholder='e.g. "drinks", "songs", "minutes late"'
-                className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
+                className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50"
                 maxLength={30}
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-purple-700 mb-2">
+              <label className="block mono-label text-ink-soft mb-2">
                 Set the line
               </label>
               <input
@@ -317,7 +317,7 @@ export default function PostPrediction({ user }) {
                 onChange={(e) => setLine(e.target.value)}
                 placeholder="e.g. 4.5"
                 step="0.5"
-                className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300"
+                className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50"
               />
             </div>
           </div>
@@ -325,7 +325,7 @@ export default function PostPrediction({ user }) {
 
         {/* Prediction text */}
         <div>
-          <label className="block text-sm font-semibold text-purple-700 mb-2">
+          <label className="block mono-label text-ink-soft mb-2">
             What do you predict will happen?
           </label>
           <textarea
@@ -342,11 +342,11 @@ export default function PostPrediction({ user }) {
                 ? 'e.g. "How many drinks will Sam have?"'
                 : 'e.g. "Jake will dance on a table"'
             }
-            className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300 resize-none"
+            className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50 resize-none"
             rows={3}
             maxLength={200}
           />
-          <p className="text-xs text-gray-400 mt-1">{text.length}/200</p>
+          <p className="text-xs text-ink-mute mt-1">{text.length}/200</p>
         </div>
 
         {/* Multi-outcome creator */}
@@ -358,21 +358,21 @@ export default function PostPrediction({ user }) {
           />
         )}
 
-        {/* Resolution criteria — not for overunder */}
+        {/* Resolution criteria */}
         {type !== "overunder" && (
           <div>
-            <label className="block text-sm font-semibold text-purple-700 mb-2">
+            <label className="block mono-label text-ink-soft mb-2">
               How will we know this happened?
             </label>
             <textarea
               value={resolutionCriteria}
               onChange={(e) => setResolutionCriteria(e.target.value)}
               placeholder='e.g. "Verified by at least 2 witnesses" or "Photo evidence required"'
-              className="w-full px-4 py-3 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 text-gray-800 placeholder:text-gray-300 resize-none"
+              className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink placeholder:text-ink-mute/50 resize-none"
               rows={2}
               maxLength={150}
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-ink-mute mt-1">
               {resolutionCriteria.length}/150
             </p>
           </div>
@@ -381,7 +381,7 @@ export default function PostPrediction({ user }) {
         <motion.button
           type="submit"
           disabled={submitting || !canSubmit()}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold py-3 rounded-full shadow-lg disabled:opacity-50"
+          className="w-full bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410] disabled:opacity-50"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

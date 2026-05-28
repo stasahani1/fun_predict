@@ -1,10 +1,10 @@
 {
-  "name": "Fun Predict",
-  "short_name": "FunPredict",
+  "name": "hunch.",
+  "short_name": "hunch.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#9333ea",
+  "background_color": "#FFF7EC",
+  "theme_color": "#FF6B1A",
   "icons": [
     {
       "src": "/icon-192.png",

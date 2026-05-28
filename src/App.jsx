@@ -30,7 +30,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-300 border-t-purple-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-rule-dark border-t-brand" />
       </div>
     );
   }
