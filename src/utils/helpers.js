@@ -32,6 +32,18 @@ export function formatCurrency(amount) {
 }
 
 /**
+ * Prediction category options.
+ */
+export const PREDICTION_CATEGORIES = [
+  { id: "drinking", label: "Drinking", emoji: "\u{1F37B}", color: "bg-orange-100 text-orange-700" },
+  { id: "romance", label: "Romance", emoji: "\u{1F495}", color: "bg-pink-100 text-pink-700" },
+  { id: "logistics", label: "Logistics", emoji: "\u{1F4CB}", color: "bg-blue-100 text-blue-700" },
+  { id: "chaos", label: "Chaos", emoji: "\u{1F32A}\uFE0F", color: "bg-red-100 text-red-700" },
+  { id: "people", label: "People", emoji: "\u{1F464}", color: "bg-purple-100 text-purple-700" },
+  { id: "other", label: "Other", emoji: "\u2728", color: "bg-gray-100 text-gray-600" },
+];
+
+/**
  * Phase display config.
  */
 export const PHASE_CONFIG = {

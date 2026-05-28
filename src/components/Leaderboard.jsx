@@ -26,7 +26,7 @@ export default function Leaderboard({ balances }) {
               </span>
               <span className="font-semibold text-gray-800">{entry.userName}</span>
             </div>
-            <div className="text-right">
+            <div className="text-right tabular-nums">
               <p className="font-bold text-purple-700">
                 {formatCurrency(entry.balance)}
               </p>

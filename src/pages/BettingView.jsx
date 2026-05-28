@@ -6,25 +6,35 @@ import {
   addDoc,
   doc,
   updateDoc,
-  increment,
   getDoc,
+  increment,
+  runTransaction,
   serverTimestamp,
-  query,
-  where,
-  getDocs,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { formatOdds, potentialPayout, BET_AMOUNT } from "../utils/payouts";
-import { formatCurrency } from "../utils/helpers";
+import {
+  formatDualOdds,
+  BET_AMOUNT,
+  isBinaryPrediction,
+  impliedProbability,
+  multiImpliedProbability,
+} from "../utils/payouts";
+import { formatCurrency, PREDICTION_CATEGORIES } from "../utils/helpers";
 import { motion, AnimatePresence } from "framer-motion";
+import AnimatedNumber from "../components/AnimatedNumber";
+import MultiOutcomeOdds from "../components/MultiOutcomeOdds";
+import OverUnderOdds from "../components/OverUnderOdds";
+import ConditionalBadge from "../components/ConditionalBadge";
 
 export default function BettingView({ user }) {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const [predictions, setPredictions] = useState([]);
   const [myBets, setMyBets] = useState({});
+  const [allBets, setAllBets] = useState({});
   const [balance, setBalance] = useState(100);
   const [betting, setBetting] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -35,11 +45,12 @@ export default function BettingView({ user }) {
         preds.sort(
           (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
         );
-        // Open predictions are visible to everyone;
-        // Tagged predictions are hidden from tagged members
         const filtered = preds.filter(
           (p) =>
             p.type === "open" ||
+            p.type === "multi" ||
+            p.type === "overunder" ||
+            p.type === "conditional" ||
             !p.taggedMembers?.some((m) => m.uid === user.uid)
         );
         setPredictions(filtered);
@@ -52,14 +63,18 @@ export default function BettingView({ user }) {
     const unsub = onSnapshot(
       collection(db, "events", eventId, "bets"),
       (snap) => {
-        const bets = {};
+        const mine = {};
+        const grouped = {};
         snap.forEach((d) => {
           const bet = d.data();
           if (bet.userId === user.uid) {
-            bets[bet.predictionId] = bet.side;
+            mine[bet.predictionId] = bet.side;
           }
+          if (!grouped[bet.predictionId]) grouped[bet.predictionId] = [];
+          grouped[bet.predictionId].push(bet);
         });
-        setMyBets(bets);
+        setMyBets(mine);
+        setAllBets(grouped);
       }
     );
     return unsub;
@@ -78,11 +93,21 @@ export default function BettingView({ user }) {
   }, [eventId, user.uid]);
 
   const placeBet = async (prediction, side) => {
-    if (myBets[prediction.id]) return; // Already bet
-    if (balance < BET_AMOUNT) return; // Not enough funds
+    if (myBets[prediction.id]) return;
+    if (balance < BET_AMOUNT) return;
     setBetting(prediction.id);
 
     try {
+      // Compute impliedProbAtBet for Brier score (Batch 4)
+      let impliedProbAtBet = 0.5;
+      if (prediction.type === "multi") {
+        const outcomes = prediction.outcomes || [];
+        impliedProbAtBet = multiImpliedProbability(outcomes, side);
+      } else {
+        const prob = impliedProbability(prediction.totalYes, prediction.totalNo);
+        impliedProbAtBet = side === "yes" ? prob : 1 - prob;
+      }
+
       // Add bet document
       await addDoc(collection(db, "events", eventId, "bets"), {
         predictionId: prediction.id,
@@ -90,16 +115,32 @@ export default function BettingView({ user }) {
         userName: user.displayName || "Anonymous",
         side,
         amount: BET_AMOUNT,
+        impliedProbAtBet,
         createdAt: serverTimestamp(),
       });
 
       // Update prediction totals
-      await updateDoc(
-        doc(db, "events", eventId, "predictions", prediction.id),
-        {
-          [side === "yes" ? "totalYes" : "totalNo"]: increment(1),
-        }
-      );
+      if (prediction.type === "multi") {
+        // Multi-outcome: use transaction to update specific outcome's totalBets
+        const predRef = doc(db, "events", eventId, "predictions", prediction.id);
+        await runTransaction(db, async (transaction) => {
+          const predDoc = await transaction.get(predRef);
+          if (!predDoc.exists()) return;
+          const data = predDoc.data();
+          const updatedOutcomes = (data.outcomes || []).map((o) =>
+            o.id === side ? { ...o, totalBets: (o.totalBets || 0) + 1 } : o
+          );
+          transaction.update(predRef, { outcomes: updatedOutcomes });
+        });
+      } else {
+        // Binary / overunder / conditional
+        await updateDoc(
+          doc(db, "events", eventId, "predictions", prediction.id),
+          {
+            [side === "yes" ? "totalYes" : "totalNo"]: increment(1),
+          }
+        );
+      }
 
       // Deduct from balance
       await updateDoc(doc(db, "events", eventId, "balances", user.uid), {
@@ -131,6 +172,33 @@ export default function BettingView({ user }) {
         </div>
       </div>
 
+      {/* Category filter */}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+        <button
+          onClick={() => setCategoryFilter("all")}
+          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            categoryFilter === "all"
+              ? "bg-purple-500 text-white"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+          }`}
+        >
+          All
+        </button>
+        {PREDICTION_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setCategoryFilter(cat.id)}
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              categoryFilter === cat.id
+                ? cat.color + " ring-2 ring-offset-1 ring-purple-400"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            {cat.emoji} {cat.label}
+          </button>
+        ))}
+      </div>
+
       {balance < BET_AMOUNT && (
         <div className="bg-red-50 text-red-600 text-sm font-medium p-3 rounded-xl">
           You don't have enough funds to place more bets.
@@ -139,10 +207,18 @@ export default function BettingView({ user }) {
 
       <AnimatePresence>
         <div className="space-y-4">
-          {predictions.map((pred, i) => {
-            const odds = formatOdds(pred.totalYes, pred.totalNo);
+          {predictions
+            .filter((p) => categoryFilter === "all" || p.category === categoryFilter)
+            .map((pred, i) => {
+            const isMulti = pred.type === "multi";
+            const isOverUnder = pred.type === "overunder";
+            const isConditional = pred.type === "conditional";
+            const isBinary = isBinaryPrediction(pred);
+            const dualOdds = (isBinary || isConditional) ? formatDualOdds(pred.totalYes, pred.totalNo) : null;
             const alreadyBet = myBets[pred.id];
             const isBetting = betting === pred.id;
+            const predBets = allBets[pred.id] || [];
+            const categoryObj = PREDICTION_CATEGORIES.find((c) => c.id === pred.category);
 
             return (
               <motion.div
@@ -155,74 +231,170 @@ export default function BettingView({ user }) {
                 <p className="text-base font-semibold text-gray-800 mb-1">
                   {pred.text}
                 </p>
-                <p className="text-xs text-gray-400 mb-3">
-                  by {pred.creatorName}
-                  {pred.taggedMembers?.length > 0 &&
-                    ` · feat. ${pred.taggedMembers
-                      .map((m) => m.name)
-                      .join(", ")}`}
-                </p>
-
-                {/* Odds display */}
-                <div className="flex gap-2 mb-3 text-center">
-                  <div className="flex-1 bg-green-50 rounded-xl py-2">
-                    <span className="text-xs text-gray-500">YES</span>
-                    <p className="text-lg font-bold text-green-600">
-                      {odds.yes}
-                    </p>
-                    {pred.totalYes + pred.totalNo > 0 && (
-                      <span className="text-xs text-gray-400">
-                        Win{" "}
-                        {formatCurrency(
-                          potentialPayout(pred.totalYes, pred.totalNo, "yes")
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 bg-red-50 rounded-xl py-2">
-                    <span className="text-xs text-gray-500">NO</span>
-                    <p className="text-lg font-bold text-red-500">{odds.no}</p>
-                    {pred.totalYes + pred.totalNo > 0 && (
-                      <span className="text-xs text-gray-400">
-                        Win{" "}
-                        {formatCurrency(
-                          potentialPayout(pred.totalYes, pred.totalNo, "no")
-                        )}
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-400">
+                    by {pred.creatorName}
+                  </span>
+                  {categoryObj && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryObj.color}`}>
+                      {categoryObj.emoji} {categoryObj.label}
+                    </span>
+                  )}
+                  {pred.taggedMembers?.length > 0 && (
+                    <span className="text-xs bg-pink-100 text-pink-600 px-2 py-0.5 rounded-full">
+                      feat. {pred.taggedMembers.map((m) => m.name).join(", ")}
+                    </span>
+                  )}
+                  {pred.type && !isBinary && (
+                    <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                      {pred.type === "multi" ? "Multi" : pred.type === "overunder" ? "O/U" : "Cond."}
+                    </span>
+                  )}
                 </div>
+                {pred.resolutionCriteria && (
+                  <p className="text-xs text-gray-400 italic mb-3">
+                    {"\u2696\uFE0F"} {pred.resolutionCriteria}
+                  </p>
+                )}
 
-                {/* Bet buttons */}
-                {alreadyBet ? (
-                  <div
-                    className={`text-center py-2 rounded-full text-sm font-bold ${
-                      alreadyBet === "yes"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    You bet {alreadyBet.toUpperCase()}
+                {/* Conditional badge */}
+                {isConditional && pred.condition && (
+                  <ConditionalBadge
+                    condition={pred.condition}
+                    conditionMet={pred.conditionMet}
+                  />
+                )}
+
+                {/* Multi-outcome odds */}
+                {isMulti && pred.outcomes && (
+                  <div className="mb-3">
+                    <MultiOutcomeOdds
+                      outcomes={pred.outcomes}
+                      onBet={alreadyBet ? undefined : (outcomeId) => placeBet(pred, outcomeId)}
+                      userBet={alreadyBet}
+                      betting={isBetting}
+                    />
                   </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <motion.button
-                      onClick={() => placeBet(pred, "yes")}
-                      disabled={isBetting || balance < BET_AMOUNT}
-                      className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {isBetting ? "..." : `YES ($${BET_AMOUNT})`}
-                    </motion.button>
-                    <motion.button
-                      onClick={() => placeBet(pred, "no")}
-                      disabled={isBetting || balance < BET_AMOUNT}
-                      className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {isBetting ? "..." : `NO ($${BET_AMOUNT})`}
-                    </motion.button>
+                )}
+
+                {/* Over/Under odds */}
+                {isOverUnder && (
+                  <div className="mb-3">
+                    <OverUnderOdds
+                      line={pred.line}
+                      unit={pred.unit}
+                      totalYes={pred.totalYes}
+                      totalNo={pred.totalNo}
+                      actualValue={pred.actualValue}
+                      onBet={alreadyBet ? undefined : (side) => placeBet(pred, side)}
+                      userBet={alreadyBet}
+                      betting={isBetting}
+                    />
                   </div>
+                )}
+
+                {/* Binary / Conditional odds display */}
+                {(isBinary || isConditional) && dualOdds && (
+                  <div className="flex gap-2 mb-3 text-center">
+                    <div className="flex-1 bg-green-50 rounded-xl py-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">YES</span>
+                      <p>
+                        <AnimatedNumber
+                          value={dualOdds.yes.percent}
+                          format="percent"
+                          className="text-2xl font-extrabold text-green-600"
+                        />
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        $10 {"\u2192"} <AnimatedNumber value={dualOdds.yes.payout} format="currency" className="text-xs" />
+                      </p>
+                    </div>
+                    <div className="flex-1 bg-red-50 rounded-xl py-2">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">NO</span>
+                      <p>
+                        <AnimatedNumber
+                          value={dualOdds.no.percent}
+                          format="percent"
+                          className="text-2xl font-extrabold text-red-500"
+                        />
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        $10 {"\u2192"} <AnimatedNumber value={dualOdds.no.payout} format="currency" className="text-xs" />
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Who bet what pills */}
+                {predBets.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {predBets.slice(0, 5).map((bet, j) => {
+                      // For multi, show outcome label; for binary, show YES/NO
+                      let sideLabel = bet.side.toUpperCase();
+                      if (isMulti && pred.outcomes) {
+                        const outcome = pred.outcomes.find((o) => o.id === bet.side);
+                        if (outcome) sideLabel = outcome.label;
+                      }
+                      if (isOverUnder) {
+                        sideLabel = bet.side === "yes" ? "OVER" : "UNDER";
+                      }
+                      return (
+                        <span
+                          key={j}
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            bet.side === "yes"
+                              ? "bg-green-100 text-green-700"
+                              : bet.side === "no"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-purple-100 text-purple-700"
+                          }`}
+                        >
+                          {bet.userName?.split(" ")[0]}: {sideLabel}
+                        </span>
+                      );
+                    })}
+                    {predBets.length > 5 && (
+                      <span className="text-xs text-gray-400 px-2 py-0.5">
+                        +{predBets.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Bet buttons — only for binary / conditional */}
+                {(isBinary || isConditional) && !isMulti && !isOverUnder && (
+                  <>
+                    {alreadyBet ? (
+                      <div
+                        className={`text-center py-2 rounded-full text-sm font-bold ${
+                          alreadyBet === "yes"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        You bet {alreadyBet.toUpperCase()}
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <motion.button
+                          onClick={() => placeBet(pred, "yes")}
+                          disabled={isBetting || balance < BET_AMOUNT}
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {isBetting ? "..." : `YES ($${BET_AMOUNT})`}
+                        </motion.button>
+                        <motion.button
+                          onClick={() => placeBet(pred, "no")}
+                          disabled={isBetting || balance < BET_AMOUNT}
+                          className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-full disabled:opacity-50 transition-colors"
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {isBetting ? "..." : `NO ($${BET_AMOUNT})`}
+                        </motion.button>
+                      </div>
+                    )}
+                  </>
                 )}
               </motion.div>
             );
@@ -232,7 +404,7 @@ export default function BettingView({ user }) {
 
       {predictions.length === 0 && (
         <div className="text-center py-12 text-gray-400">
-          <p className="text-4xl mb-2">🎯</p>
+          <p className="text-4xl mb-2">{"\uD83C\uDFAF"}</p>
           <p>No predictions available for you to bet on.</p>
         </div>
       )}

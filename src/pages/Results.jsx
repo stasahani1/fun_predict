@@ -9,7 +9,13 @@ import {
 import { db } from "../firebase";
 import Leaderboard from "../components/Leaderboard";
 import PredictionCard from "../components/PredictionCard";
-import { calculatePayout, BET_AMOUNT } from "../utils/payouts";
+import PersonalityAwards from "../components/PersonalityAwards";
+import ShareReceiptButton from "../components/ShareReceiptButton";
+import {
+  calculatePayout,
+  multiCalculatePayout,
+  BET_AMOUNT,
+} from "../utils/payouts";
 import { formatCurrency } from "../utils/helpers";
 import { motion } from "framer-motion";
 
@@ -20,6 +26,7 @@ export default function Results({ user }) {
   const [predictions, setPredictions] = useState([]);
   const [balances, setBalances] = useState([]);
   const [myBets, setMyBets] = useState([]);
+  const [allBets, setAllBets] = useState([]);
   const [showConfetti, setShowConfetti] = useState(true);
 
   useEffect(() => {
@@ -64,12 +71,15 @@ export default function Results({ user }) {
   useEffect(() => {
     const loadBets = async () => {
       const snap = await getDocs(collection(db, "events", eventId, "bets"));
-      const bets = [];
+      const all = [];
+      const mine = [];
       snap.forEach((d) => {
-        const bet = d.data();
-        if (bet.userId === user.uid) bets.push(bet);
+        const bet = { id: d.id, ...d.data() };
+        all.push(bet);
+        if (bet.userId === user.uid) mine.push(bet);
       });
-      setMyBets(bets);
+      setAllBets(all);
+      setMyBets(mine);
     };
     loadBets();
   }, [eventId, user.uid]);
@@ -77,6 +87,20 @@ export default function Results({ user }) {
   const myBalance = balances.find((b) => b.userId === user.uid);
   const sorted = [...balances].sort((a, b) => b.netProfit - a.netProfit);
   const myRank = sorted.findIndex((b) => b.userId === user.uid) + 1;
+
+  // Build top bets for receipt
+  const topBets = myBets.slice(0, 4).map((bet) => {
+    const pred = predictions.find((p) => p.id === bet.predictionId);
+    if (!pred) return { text: "Unknown", won: false, voided: false };
+    const voided = pred.resolution === "void";
+    let won = false;
+    if (pred.type === "multi") {
+      won = bet.side === pred.resolution;
+    } else {
+      won = bet.side === pred.resolution;
+    }
+    return { text: pred.text, won, voided };
+  });
 
   return (
     <div className="space-y-5">
@@ -102,7 +126,7 @@ export default function Results({ user }) {
               animate={{ scale: [0, 1.3, 1] }}
               transition={{ duration: 0.6 }}
             >
-              🎉
+              {"\uD83C\uDF89"}
             </motion.p>
             <motion.p
               className="text-2xl font-extrabold text-purple-700 mt-2"
@@ -148,8 +172,27 @@ export default function Results({ user }) {
         </motion.div>
       )}
 
+      {/* Share Receipt Button (Batch 6) */}
+      {myBalance && (
+        <ShareReceiptButton
+          eventName={event?.name}
+          userName={user.displayName || "Player"}
+          rank={myRank}
+          totalPlayers={balances.length}
+          netProfit={myBalance.netProfit || 0}
+          topBets={topBets}
+        />
+      )}
+
       {/* Leaderboard */}
       <Leaderboard balances={balances} />
+
+      {/* Personality Awards */}
+      <PersonalityAwards
+        predictions={predictions}
+        balances={balances}
+        allBets={allBets}
+      />
 
       {/* Your bets breakdown */}
       {myBets.length > 0 && (
@@ -161,13 +204,52 @@ export default function Results({ user }) {
                 (p) => p.id === bet.predictionId
               );
               if (!pred) return null;
-              const won = pred.resolution === bet.side;
-              const voided = pred.resolution === "void";
-              const payout = won
-                ? calculatePayout(pred.totalYes, pred.totalNo, pred.resolution)
-                : voided
-                ? BET_AMOUNT
-                : 0;
+
+              const isMulti = pred.type === "multi";
+              const isOverUnder = pred.type === "overunder";
+              const isConditional = pred.type === "conditional";
+
+              let won, voided, payout;
+              if (isMulti) {
+                voided = pred.resolution === "void";
+                won = bet.side === pred.resolution;
+                payout = won
+                  ? multiCalculatePayout(pred.outcomes || [], pred.resolution)
+                  : voided
+                  ? BET_AMOUNT
+                  : 0;
+              } else {
+                won = pred.resolution === bet.side;
+                voided = pred.resolution === "void";
+                if (isConditional && pred.conditionMet === false) voided = true;
+                payout = won
+                  ? calculatePayout(pred.totalYes, pred.totalNo, pred.resolution)
+                  : voided
+                  ? BET_AMOUNT
+                  : 0;
+              }
+
+              // Label for bet side
+              let sideLabel = bet.side.toUpperCase();
+              if (isMulti && pred.outcomes) {
+                const outcome = pred.outcomes.find((o) => o.id === bet.side);
+                if (outcome) sideLabel = outcome.label;
+              }
+              if (isOverUnder) {
+                sideLabel = bet.side === "yes" ? "OVER" : "UNDER";
+              }
+
+              // Status text
+              let statusText;
+              if (isConditional && pred.conditionMet === false) {
+                statusText = "Condition not met \u2014 Refunded $10";
+              } else if (voided) {
+                statusText = "Refunded $10";
+              } else if (won) {
+                statusText = `Won ${formatCurrency(payout)}`;
+              } else {
+                statusText = `Lost $${BET_AMOUNT}`;
+              }
 
               return (
                 <motion.div
@@ -191,10 +273,12 @@ export default function Results({ user }) {
                       className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                         bet.side === "yes"
                           ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
+                          : bet.side === "no"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-purple-100 text-purple-700"
                       }`}
                     >
-                      You: {bet.side.toUpperCase()}
+                      You: {sideLabel}
                     </span>
                     <span
                       className={`text-sm font-bold ${
@@ -205,11 +289,7 @@ export default function Results({ user }) {
                           : "text-red-500"
                       }`}
                     >
-                      {voided
-                        ? "Refunded $10"
-                        : won
-                        ? `Won ${formatCurrency(payout)}`
-                        : `Lost $${BET_AMOUNT}`}
+                      {statusText}
                     </span>
                   </div>
                 </motion.div>
@@ -229,6 +309,8 @@ export default function Results({ user }) {
               prediction={pred}
               index={i}
               showOdds={true}
+              eventId={eventId}
+              user={user}
             />
           ))}
         </div>

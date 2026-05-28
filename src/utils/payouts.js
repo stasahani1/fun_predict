@@ -63,4 +63,112 @@ export function formatOdds(totalYes, totalNo) {
   };
 }
 
+/**
+ * Dual-format odds: probability percentage + potential payout for $10 bet.
+ */
+export function formatDualOdds(totalYes, totalNo) {
+  const prob = impliedProbability(totalYes, totalNo);
+  return {
+    yes: {
+      percent: Math.round(prob * 100),
+      payout: potentialPayout(totalYes, totalNo, "yes"),
+    },
+    no: {
+      percent: Math.round((1 - prob) * 100),
+      payout: potentialPayout(totalYes, totalNo, "no"),
+    },
+  };
+}
+
+// --- Multi-Outcome Market Functions ---
+
+/**
+ * Implied probability for a specific outcome in a multi-outcome market.
+ */
+export function multiImpliedProbability(outcomes, outcomeId) {
+  const totalBets = outcomes.reduce((sum, o) => sum + (o.totalBets || 0), 0);
+  if (totalBets === 0) return 1 / outcomes.length;
+  const outcome = outcomes.find((o) => o.id === outcomeId);
+  return (outcome?.totalBets || 0) / totalBets;
+}
+
+/**
+ * Potential payout for betting on a specific outcome (parimutuel).
+ */
+export function multiPotentialPayout(outcomes, outcomeId) {
+  const totalBets = outcomes.reduce((sum, o) => sum + (o.totalBets || 0), 0);
+  const outcome = outcomes.find((o) => o.id === outcomeId);
+  const newTotal = (totalBets + 1) * BET_AMOUNT;
+  const winners = (outcome?.totalBets || 0) + 1;
+  return newTotal / winners;
+}
+
+/**
+ * Actual payout for multi-outcome market after resolution.
+ */
+export function multiCalculatePayout(outcomes, winningOutcomeId) {
+  if (winningOutcomeId === "void") return BET_AMOUNT;
+  const totalBets = outcomes.reduce((sum, o) => sum + (o.totalBets || 0), 0);
+  const totalPool = totalBets * BET_AMOUNT;
+  const winner = outcomes.find((o) => o.id === winningOutcomeId);
+  if (!winner || winner.totalBets === 0) return 0;
+  return totalPool / winner.totalBets;
+}
+
+/**
+ * Format multi-outcome odds for display.
+ */
+export function formatMultiOdds(outcomes) {
+  const totalBets = outcomes.reduce((sum, o) => sum + (o.totalBets || 0), 0);
+  return outcomes.map((o) => ({
+    id: o.id,
+    label: o.label,
+    percent:
+      totalBets > 0
+        ? Math.round(((o.totalBets || 0) / totalBets) * 100)
+        : Math.round(100 / outcomes.length),
+    payout: multiPotentialPayout(outcomes, o.id),
+    totalBets: o.totalBets || 0,
+  }));
+}
+
+/**
+ * Check if a prediction is binary (open/tagged) vs multi/overunder/conditional.
+ */
+export function isBinaryPrediction(prediction) {
+  return !prediction.type || prediction.type === "open" || prediction.type === "tagged";
+}
+
+/**
+ * Calculate unrealized value of a bet based on current odds.
+ * Returns expected value minus bet cost.
+ */
+export function unrealizedValue(prediction, betSide) {
+  if (!betSide) return 0;
+
+  if (prediction.type === "multi") {
+    const totalBets = (prediction.outcomes || []).reduce(
+      (sum, o) => sum + (o.totalBets || 0),
+      0
+    );
+    if (totalBets === 0) return 0;
+    const outcome = prediction.outcomes?.find((o) => o.id === betSide);
+    const prob = (outcome?.totalBets || 0) / totalBets;
+    const totalPool = totalBets * BET_AMOUNT;
+    const payout = outcome?.totalBets > 0 ? totalPool / outcome.totalBets : 0;
+    return prob * payout - BET_AMOUNT;
+  }
+
+  // Binary / overunder / conditional
+  const prob = impliedProbability(prediction.totalYes, prediction.totalNo);
+  const totalPool = (prediction.totalYes + prediction.totalNo) * BET_AMOUNT;
+  if (betSide === "yes") {
+    const payout = prediction.totalYes > 0 ? totalPool / prediction.totalYes : 0;
+    return prob * payout - BET_AMOUNT;
+  } else {
+    const payout = prediction.totalNo > 0 ? totalPool / prediction.totalNo : 0;
+    return (1 - prob) * payout - BET_AMOUNT;
+  }
+}
+
 export { BET_AMOUNT };

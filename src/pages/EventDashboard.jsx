@@ -12,7 +12,7 @@ import { db } from "../firebase";
 import PhaseIndicator from "../components/PhaseIndicator";
 import PredictionCard from "../components/PredictionCard";
 import Leaderboard from "../components/Leaderboard";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { PHASE_CONFIG } from "../utils/helpers";
 
 const PHASE_ORDER = ["posting", "betting", "live", "resolving", "complete"];
@@ -23,8 +23,10 @@ export default function EventDashboard({ user }) {
   const [event, setEvent] = useState(null);
   const [predictions, setPredictions] = useState([]);
   const [balances, setBalances] = useState([]);
+  const [betsByPrediction, setBetsByPrediction] = useState({});
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showAboutMe, setShowAboutMe] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "events", eventId), (snap) => {
@@ -56,6 +58,22 @@ export default function EventDashboard({ user }) {
         const bals = [];
         snap.forEach((d) => bals.push({ id: d.id, ...d.data() }));
         setBalances(bals);
+      }
+    );
+    return unsub;
+  }, [eventId]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "events", eventId, "bets"),
+      (snap) => {
+        const grouped = {};
+        snap.forEach((d) => {
+          const bet = d.data();
+          if (!grouped[bet.predictionId]) grouped[bet.predictionId] = [];
+          grouped[bet.predictionId].push(bet);
+        });
+        setBetsByPrediction(grouped);
       }
     );
     return unsub;
@@ -138,6 +156,16 @@ export default function EventDashboard({ user }) {
             Place Bets
           </motion.button>
         )}
+        {event.phase === "live" && (
+          <motion.button
+            onClick={() => navigate(`/event/${eventId}/live`)}
+            className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-full shadow-lg"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Live Sweat View
+          </motion.button>
+        )}
         {event.phase === "resolving" && isCreator && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/resolve`)}
@@ -171,6 +199,47 @@ export default function EventDashboard({ user }) {
         </motion.button>
       )}
 
+      {/* Predictions About You */}
+      {(() => {
+        const aboutMe = predictions.filter(
+          (p) => p.taggedMembers?.some((m) => m.uid === user.uid)
+        );
+        if (aboutMe.length === 0) return null;
+        return (
+          <div>
+            <button
+              onClick={() => setShowAboutMe(!showAboutMe)}
+              className="w-full text-left bg-pink-50 border border-pink-200 text-pink-700 font-semibold text-sm px-4 py-3 rounded-xl hover:bg-pink-100 transition-colors"
+            >
+              {"\uD83C\uDFAF"} Predictions About You ({aboutMe.length}){" "}
+              {showAboutMe ? "\u25B4" : "\u25BE"}
+            </button>
+            <AnimatePresence>
+              {showAboutMe && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-3 mt-3"
+                >
+                  {aboutMe.map((pred, i) => (
+                    <PredictionCard
+                      key={pred.id}
+                      prediction={pred}
+                      index={i}
+                      showOdds={event.phase !== "posting"}
+                      eventId={eventId}
+                      user={user}
+                      bets={betsByPrediction[pred.id]}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })()}
+
       {/* Predictions list */}
       {predictions.length > 0 && (
         <div>
@@ -184,6 +253,9 @@ export default function EventDashboard({ user }) {
                 prediction={pred}
                 index={i}
                 showOdds={event.phase !== "posting"}
+                eventId={eventId}
+                user={user}
+                bets={betsByPrediction[pred.id]}
               />
             ))}
           </div>

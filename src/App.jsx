@@ -12,6 +12,8 @@ import PostPrediction from "./pages/PostPrediction";
 import BettingView from "./pages/BettingView";
 import ResolveView from "./pages/ResolveView";
 import Results from "./pages/Results";
+import Profile from "./pages/Profile";
+import SweatView from "./pages/SweatView";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -47,7 +49,9 @@ export default function App() {
           <Route path="/event/:eventId/post" element={<PostPrediction user={user} />} />
           <Route path="/event/:eventId/bet" element={<BettingView user={user} />} />
           <Route path="/event/:eventId/resolve" element={<ResolveView user={user} />} />
+          <Route path="/event/:eventId/live" element={<SweatView user={user} />} />
           <Route path="/event/:eventId/results" element={<Results user={user} />} />
+          <Route path="/profile" element={<Profile user={user} />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

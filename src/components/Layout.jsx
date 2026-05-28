@@ -4,8 +4,9 @@ import { auth } from "../firebase";
 import { motion } from "framer-motion";
 
 const navItems = [
-  { path: "/home", label: "Home", icon: "🏠" },
-  { path: "/join", label: "Join", icon: "🔗" },
+  { path: "/home", label: "Home", icon: "\uD83C\uDFE0" },
+  { path: "/join", label: "Join", icon: "\uD83D\uDD17" },
+  { path: "/profile", label: "Profile", icon: "\uD83D\uDC64" },
 ];
 
 export default function Layout({ user }) {
