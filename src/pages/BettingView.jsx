@@ -51,6 +51,7 @@ export default function BettingView({ user }) {
             p.type === "multi" ||
             p.type === "overunder" ||
             p.type === "conditional" ||
+            p.creatorId === user.uid ||
             !p.taggedMembers?.some((m) => m.uid === user.uid)
         );
         setPredictions(filtered);
