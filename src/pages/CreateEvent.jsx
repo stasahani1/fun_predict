@@ -9,6 +9,7 @@ import {
   getDocs,
   doc,
   setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { generateJoinCode } from "../utils/helpers";
@@ -81,6 +82,17 @@ export default function CreateEvent({ user }) {
       alert("Failed to create event. Please try again.");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDelete = async (eventId, eventName) => {
+    if (!window.confirm(`Delete "${eventName}"? This can't be undone.`)) return;
+    try {
+      await deleteDoc(doc(db, "events", eventId));
+      setMyEvents((prev) => prev.filter((e) => e.id !== eventId));
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      alert("Failed to delete event.");
     }
   };
 
@@ -163,35 +175,53 @@ export default function CreateEvent({ user }) {
         ) : (
           <div className="space-y-3">
             {myEvents.map((event, i) => (
-              <motion.button
+              <motion.div
                 key={event.id}
-                onClick={() => navigate(`/event/${event.id}`)}
-                className="w-full card-editorial p-4 text-left hover:shadow-[6px_6px_0_0_#181410] transition-shadow"
+                className="relative"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.08 }}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-ink">{event.name}</h4>
-                    <p className="text-xs text-ink-mute">
-                      {event.members?.length || 1} members &middot; Code:{" "}
-                      <span className="font-mono font-bold text-brand">
-                        {event.code}
-                      </span>
-                    </p>
+                <button
+                  onClick={() => navigate(`/event/${event.id}`)}
+                  className="w-full card-editorial p-4 text-left hover:shadow-[6px_6px_0_0_#181410] transition-shadow"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-bold text-ink">{event.name}</h4>
+                      <p className="text-xs text-ink-mute">
+                        {event.members?.length || 1} members &middot; Code:{" "}
+                        <span className="font-mono font-bold text-brand">
+                          {event.code}
+                        </span>
+                      </p>
+                    </div>
+                    <span
+                      className={`mono-label px-3 py-1 rounded-full ${
+                        event.phase === "complete"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-brand-bg text-brand"
+                      }`}
+                    >
+                      {event.phase}
+                    </span>
                   </div>
-                  <span
-                    className={`mono-label px-3 py-1 rounded-full ${
-                      event.phase === "complete"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-brand-bg text-brand"
-                    }`}
+                </button>
+                {event.creatorId === user.uid && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(event.id, event.name);
+                    }}
+                    className="absolute top-2 right-2 text-ink-mute hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50"
+                    title="Delete event"
                   >
-                    {event.phase}
-                  </span>
-                </div>
-              </motion.button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                  </button>
+                )}
+              </motion.div>
             ))}
           </div>
         )}
