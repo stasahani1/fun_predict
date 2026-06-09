@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { PHASE_CONFIG } from "../utils/helpers";
 
-const PHASES = ["lobby", "posting", "betting", "live", "resolving", "complete"];
+const PHASES = ["lobby", "active", "resolving", "complete"];
 
 export default function PhaseIndicator({ currentPhase }) {
   const currentIndex = PHASES.indexOf(currentPhase);
   const config = PHASE_CONFIG[currentPhase];
+
+  if (!config) return null;
 
   return (
     <div className="card-editorial p-4">

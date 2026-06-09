@@ -18,8 +18,8 @@ export default function MultiOutcomeOdds({
   outcomes,
   onBet,
   userBet,
-  betting,
   resolution,
+  blind,
 }) {
   const totalBets = outcomes.reduce((sum, o) => sum + (o.totalBets || 0), 0);
 
@@ -37,8 +37,8 @@ export default function MultiOutcomeOdds({
             ? pool / outcome.totalBets
             : pool + 10;
         const isWinner = resolution === outcome.id;
-        const isUserBet = userBet === outcome.id;
-        const isClickable = onBet && !userBet && !betting;
+        const isUserBet = typeof userBet === "string" ? userBet === outcome.id : false;
+        const isClickable = !!onBet;
 
         return (
           <motion.button
@@ -70,38 +70,43 @@ export default function MultiOutcomeOdds({
                 )}
               </span>
               <div className="flex items-center gap-3">
-                <AnimatedNumber
-                  value={percent}
-                  format="percent"
-                  className={`text-lg font-extrabold ${color.text}`}
-                />
-                {totalBets > 0 && outcome.totalBets > 0 && (
-                  <span className="text-xs text-ink-mute">
-                    $10 {"\u2192"} ${payout.toFixed(2)}
-                  </span>
+                {blind ? (
+                  <span className={`text-lg font-extrabold ${color.text}`}>??</span>
+                ) : (
+                  <>
+                    <AnimatedNumber
+                      value={percent}
+                      format="percent"
+                      className={`text-lg font-extrabold ${color.text}`}
+                    />
+                    {totalBets > 0 && outcome.totalBets > 0 && (
+                      <span className="text-xs text-ink-mute">
+                        $10 {"\u2192"} ~${payout.toFixed(2)} (est.)
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
             </div>
-            {/* Probability bar */}
-            <div className="w-full bg-rule rounded-full h-2 overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${color.bar}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${percent}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-            <p className="text-xs text-ink-mute mt-1">
-              {outcome.totalBets || 0} bet{(outcome.totalBets || 0) !== 1 ? "s" : ""}
-            </p>
+            {!blind && (
+              <>
+                {/* Probability bar */}
+                <div className="w-full bg-rule rounded-full h-2 overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full ${color.bar}`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percent}%` }}
+                    transition={{ duration: 0.5 }}
+                  />
+                </div>
+                <p className="text-xs text-ink-mute mt-1">
+                  {outcome.totalBets || 0} bet{(outcome.totalBets || 0) !== 1 ? "s" : ""}
+                </p>
+              </>
+            )}
           </motion.button>
         );
       })}
-      {betting && (
-        <p className="text-center text-sm text-brand font-medium animate-pulse">
-          Placing bet...
-        </p>
-      )}
     </div>
   );
 }

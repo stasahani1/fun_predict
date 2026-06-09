@@ -7,15 +7,17 @@ import {
   collection,
   query,
   getDocs,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import PhaseIndicator from "../components/PhaseIndicator";
 import PredictionCard from "../components/PredictionCard";
 import Leaderboard from "../components/Leaderboard";
 import { motion, AnimatePresence } from "framer-motion";
-import { PHASE_CONFIG } from "../utils/helpers";
+import { PHASE_CONFIG, PREDICTION_STATUS } from "../utils/helpers";
+import { migrateEventPhase, migratePrediction } from "../utils/migration";
 
-const PHASE_ORDER = ["lobby", "posting", "betting", "live", "resolving", "complete"];
+const PHASE_ORDER = ["lobby", "active", "resolving", "complete"];
 
 export default function EventDashboard({ user }) {
   const { eventId } = useParams();
@@ -31,7 +33,9 @@ export default function EventDashboard({ user }) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "events", eventId), (snap) => {
       if (snap.exists()) {
-        setEvent({ id: snap.id, ...snap.data() });
+        const data = snap.data();
+        const phase = migrateEventPhase(data.phase);
+        setEvent({ id: snap.id, ...data, phase });
       }
       setLoading(false);
     });
@@ -39,17 +43,21 @@ export default function EventDashboard({ user }) {
   }, [eventId]);
 
   useEffect(() => {
+    if (!event) return;
     const unsub = onSnapshot(
       collection(db, "events", eventId, "predictions"),
       (snap) => {
         const preds = [];
-        snap.forEach((d) => preds.push({ id: d.id, ...d.data() }));
+        snap.forEach((d) => {
+          const raw = { id: d.id, ...d.data() };
+          preds.push(migratePrediction(raw, event.phase));
+        });
         preds.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
         setPredictions(preds);
       }
     );
     return unsub;
-  }, [eventId]);
+  }, [eventId, event?.phase]);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -79,6 +87,30 @@ export default function EventDashboard({ user }) {
     return unsub;
   }, [eventId]);
 
+  // Auto-lock predictions with closeTime past due
+  useEffect(() => {
+    if (!event || event.phase !== "active") return;
+    const interval = setInterval(async () => {
+      const now = new Date();
+      for (const pred of predictions) {
+        if (pred.status === "open" && pred.closeTime) {
+          const closeDate = pred.closeTime.toDate ? pred.closeTime.toDate() : new Date(pred.closeTime);
+          if (closeDate <= now) {
+            try {
+              await updateDoc(
+                doc(db, "events", eventId, "predictions", pred.id),
+                { status: "locked" }
+              );
+            } catch (e) {
+              console.error("Error auto-locking prediction:", e);
+            }
+          }
+        }
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [event?.phase, predictions, eventId]);
+
   const isCreator = event?.creatorId === user.uid;
 
   const advancePhase = async () => {
@@ -89,6 +121,33 @@ export default function EventDashboard({ user }) {
         phase: PHASE_ORDER[currentIdx + 1],
       });
     }
+  };
+
+  const lockAllOpen = async () => {
+    const batch = writeBatch(db);
+    for (const pred of predictions) {
+      if (pred.status === "open") {
+        batch.update(
+          doc(db, "events", eventId, "predictions", pred.id),
+          { status: "locked" }
+        );
+      }
+    }
+    await batch.commit();
+  };
+
+  const moveToResolving = async () => {
+    const batch = writeBatch(db);
+    for (const pred of predictions) {
+      if (pred.status === "open") {
+        batch.update(
+          doc(db, "events", eventId, "predictions", pred.id),
+          { status: "locked" }
+        );
+      }
+    }
+    batch.update(doc(db, "events", eventId), { phase: "resolving" });
+    await batch.commit();
   };
 
   const copyCode = () => {
@@ -112,6 +171,15 @@ export default function EventDashboard({ user }) {
   }
 
   const nextPhase = PHASE_ORDER[PHASE_ORDER.indexOf(event.phase) + 1];
+  const showOdds = (pred) => pred.status !== "open" || (betsByPrediction[pred.id]?.length > 0);
+
+  // Filter out predictions hidden from tagged user
+  const isVisibleToUser = (pred) => {
+    if (!pred.taggedMembers?.some((m) => m.uid === user.uid)) return true;
+    if (pred.visibleToTagged !== false) return true;
+    if (pred.resolution) return true; // Revealed after resolution
+    return false;
+  };
 
   return (
     <div className="space-y-5">
@@ -177,34 +245,34 @@ export default function EventDashboard({ user }) {
 
       {/* Action Buttons based on phase */}
       <div className="flex gap-3">
-        {event.phase === "posting" && (
-          <motion.button
-            onClick={() => navigate(`/event/${eventId}/post`)}
-            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Post a Prediction
-          </motion.button>
+        {event.phase === "active" && (
+          <>
+            <motion.button
+              onClick={() => navigate(`/event/${eventId}/post`)}
+              className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Post a Prediction
+            </motion.button>
+            <motion.button
+              onClick={() => navigate(`/event/${eventId}/bet`)}
+              className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Place Bets
+            </motion.button>
+          </>
         )}
-        {event.phase === "betting" && (
-          <motion.button
-            onClick={() => navigate(`/event/${eventId}/bet`)}
-            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Place Bets
-          </motion.button>
-        )}
-        {event.phase === "live" && (
+        {event.phase === "active" && (
           <motion.button
             onClick={() => navigate(`/event/${eventId}/live`)}
-            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl border-2 border-ink shadow-[4px_4px_0_0_#181410]"
+            className="flex-shrink-0 bg-brand/10 text-brand font-bold py-3 px-4 rounded-xl border-2 border-rule-dark"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.95 }}
           >
-            Live Sweat View
+            Live
           </motion.button>
         )}
         {event.phase === "resolving" && isCreator && (
@@ -229,8 +297,28 @@ export default function EventDashboard({ user }) {
         )}
       </div>
 
-      {/* Creator controls */}
-      {isCreator && nextPhase && (
+      {/* Creator controls for active phase */}
+      {isCreator && event.phase === "active" && (
+        <div className="flex gap-3">
+          <motion.button
+            onClick={lockAllOpen}
+            className="flex-1 border-2 border-yellow-400 text-yellow-700 font-bold py-3 rounded-xl hover:bg-yellow-50 transition-colors"
+            whileTap={{ scale: 0.98 }}
+          >
+            Lock All Open
+          </motion.button>
+          <motion.button
+            onClick={moveToResolving}
+            className="flex-1 border-2 border-rule-dark text-brand font-bold py-3 rounded-xl hover:bg-brand-bg transition-colors"
+            whileTap={{ scale: 0.98 }}
+          >
+            Move to Resolving
+          </motion.button>
+        </div>
+      )}
+
+      {/* Generic advance button for non-active phases */}
+      {isCreator && nextPhase && event.phase !== "active" && (
         <motion.button
           onClick={advancePhase}
           className="w-full border-2 border-rule-dark text-brand font-bold py-3 rounded-xl hover:bg-brand-bg transition-colors"
@@ -243,7 +331,7 @@ export default function EventDashboard({ user }) {
       {/* Predictions About You */}
       {(() => {
         const aboutMe = predictions.filter(
-          (p) => p.taggedMembers?.some((m) => m.uid === user.uid)
+          (p) => p.taggedMembers?.some((m) => m.uid === user.uid) && isVisibleToUser(p)
         );
         if (aboutMe.length === 0) return null;
         return (
@@ -268,7 +356,7 @@ export default function EventDashboard({ user }) {
                       key={pred.id}
                       prediction={pred}
                       index={i}
-                      showOdds={event.phase !== "posting"}
+                      showOdds={showOdds(pred)}
                       eventId={eventId}
                       user={user}
                       bets={betsByPrediction[pred.id]}
@@ -285,15 +373,15 @@ export default function EventDashboard({ user }) {
       {predictions.length > 0 && (
         <div>
           <h3 className="font-bold text-ink mb-3">
-            Predictions ({predictions.length})
+            Predictions ({predictions.filter(isVisibleToUser).length})
           </h3>
           <div className="space-y-3">
-            {predictions.map((pred, i) => (
+            {predictions.filter(isVisibleToUser).map((pred, i) => (
               <PredictionCard
                 key={pred.id}
                 prediction={pred}
                 index={i}
-                showOdds={event.phase !== "posting"}
+                showOdds={showOdds(pred)}
                 eventId={eventId}
                 user={user}
                 bets={betsByPrediction[pred.id]}
@@ -304,7 +392,7 @@ export default function EventDashboard({ user }) {
       )}
 
       {/* Leaderboard */}
-      {balances.length > 0 && event.phase !== "posting" && (
+      {balances.length > 0 && event.phase !== "lobby" && (
         <Leaderboard balances={balances} />
       )}
 

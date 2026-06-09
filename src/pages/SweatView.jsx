@@ -11,13 +11,15 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { formatDualOdds, BET_AMOUNT, unrealizedValue } from "../utils/payouts";
-import { formatCurrency } from "../utils/helpers";
+import { formatDualOdds, BET_AMOUNT, unrealizedValueMultiBet } from "../utils/payouts";
+import { formatCurrency, PREDICTION_STATUS } from "../utils/helpers";
+import { migrateEventPhase, migratePrediction } from "../utils/migration";
 import { motion } from "framer-motion";
 import AnimatedNumber from "../components/AnimatedNumber";
 import MultiOutcomeOdds from "../components/MultiOutcomeOdds";
 import OverUnderOdds from "../components/OverUnderOdds";
 import ConditionalBadge from "../components/ConditionalBadge";
+import NetPositionDisplay from "../components/NetPositionDisplay";
 
 export default function SweatView({ user }) {
   const { eventId } = useParams();
@@ -30,7 +32,10 @@ export default function SweatView({ user }) {
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "events", eventId), (snap) => {
-      if (snap.exists()) setEvent({ id: snap.id, ...snap.data() });
+      if (snap.exists()) {
+        const data = snap.data();
+        setEvent({ id: snap.id, ...data, phase: migrateEventPhase(data.phase) });
+      }
     });
     return unsub;
   }, [eventId]);
@@ -40,13 +45,22 @@ export default function SweatView({ user }) {
       collection(db, "events", eventId, "predictions"),
       (snap) => {
         const preds = [];
-        snap.forEach((d) => preds.push({ id: d.id, ...d.data() }));
+        snap.forEach((d) => {
+          const raw = { id: d.id, ...d.data() };
+          preds.push(migratePrediction(raw, event?.phase || "active"));
+        });
         preds.sort((a, b) => (b.totalYes + b.totalNo) - (a.totalYes + a.totalNo));
-        setPredictions(preds);
+        // Filter hidden tagged predictions
+        const visible = preds.filter((p) => {
+          const isTagged = p.taggedMembers?.some((m) => m.uid === user.uid);
+          if (isTagged && p.visibleToTagged === false && !p.resolution) return false;
+          return true;
+        });
+        setPredictions(visible);
       }
     );
     return unsub;
-  }, [eventId]);
+  }, [eventId, event?.phase, user.uid]);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -55,9 +69,10 @@ export default function SweatView({ user }) {
         const mine = {};
         const grouped = {};
         snap.forEach((d) => {
-          const bet = d.data();
+          const bet = { id: d.id, ...d.data() };
           if (bet.userId === user.uid) {
-            mine[bet.predictionId] = bet.side;
+            if (!mine[bet.predictionId]) mine[bet.predictionId] = [];
+            mine[bet.predictionId].push({ side: bet.side, amount: bet.amount || BET_AMOUNT, id: d.id });
           }
           if (!grouped[bet.predictionId]) grouped[bet.predictionId] = [];
           grouped[bet.predictionId].push(bet);
@@ -102,9 +117,9 @@ export default function SweatView({ user }) {
     return unsub;
   }, [eventId]);
 
-  const myBetPredictions = predictions.filter((p) => myBets[p.id]);
+  const myBetPredictions = predictions.filter((p) => myBets[p.id]?.length > 0);
   const netPosition = myBetPredictions.reduce((sum, pred) => {
-    return sum + unrealizedValue(pred, myBets[pred.id]);
+    return sum + unrealizedValueMultiBet(pred, myBets[pred.id]);
   }, 0);
 
   return (
@@ -177,6 +192,7 @@ export default function SweatView({ user }) {
             const isMulti = pred.type === "multi";
             const isOverUnder = pred.type === "overunder";
             const isConditional = pred.type === "conditional";
+            const isBlind = pred.blindMode && !pred.resolution;
             const dualOdds = isBinary || isConditional
               ? formatDualOdds(pred.totalYes, pred.totalNo)
               : null;
@@ -189,9 +205,21 @@ export default function SweatView({ user }) {
                 transition={{ delay: i * 0.05 }}
                 className="card-editorial p-4"
               >
-                <p className="text-sm font-semibold text-ink mb-2">
-                  {pred.text}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <p className="text-sm font-semibold text-ink">
+                    {pred.text}
+                  </p>
+                  {pred.status && PREDICTION_STATUS[pred.status] && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${PREDICTION_STATUS[pred.status].color}`}>
+                      {PREDICTION_STATUS[pred.status].label}
+                    </span>
+                  )}
+                  {isBlind && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 bg-gray-800 text-white">
+                      Blind
+                    </span>
+                  )}
+                </div>
 
                 {isConditional && pred.condition && (
                   <ConditionalBadge
@@ -200,7 +228,20 @@ export default function SweatView({ user }) {
                   />
                 )}
 
-                {(isBinary || isConditional) && dualOdds && (
+                {(isBinary || isConditional) && isBlind && (
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-green-50 rounded-xl py-2 text-center">
+                      <span className="mono-label text-ink-mute">YES</span>
+                      <p className="text-xl font-extrabold text-green-600">??</p>
+                    </div>
+                    <div className="flex-1 bg-red-50 rounded-xl py-2 text-center">
+                      <span className="mono-label text-ink-mute">NO</span>
+                      <p className="text-xl font-extrabold text-red-500">??</p>
+                    </div>
+                  </div>
+                )}
+
+                {(isBinary || isConditional) && dualOdds && !isBlind && (
                   <div className="flex gap-2">
                     <div className="flex-1 bg-green-50 rounded-xl py-2 text-center">
                       <span className="mono-label text-ink-mute">
@@ -237,17 +278,18 @@ export default function SweatView({ user }) {
                     totalNo={pred.totalNo}
                     actualValue={pred.actualValue}
                     readOnly
+                    blind={isBlind}
                   />
                 )}
 
                 {isMulti && pred.outcomes && (
-                  <MultiOutcomeOdds outcomes={pred.outcomes} />
+                  <MultiOutcomeOdds outcomes={pred.outcomes} blind={isBlind} />
                 )}
 
-                {myBets[pred.id] && (
-                  <p className="mono-label font-bold text-brand mt-2">
-                    Your bet: {myBets[pred.id].toUpperCase()}
-                  </p>
+                {myBets[pred.id]?.length > 0 && (
+                  <div className="mt-2">
+                    <NetPositionDisplay bets={myBets[pred.id]} prediction={pred} />
+                  </div>
                 )}
               </motion.div>
             );
@@ -261,7 +303,7 @@ export default function SweatView({ user }) {
           <h3 className="font-bold text-ink mb-3">Your Active Bets</h3>
           <div className="space-y-2">
             {myBetPredictions.map((pred, i) => {
-              const uv = unrealizedValue(pred, myBets[pred.id]);
+              const uv = unrealizedValueMultiBet(pred, myBets[pred.id]);
               return (
                 <motion.div
                   key={pred.id}
@@ -275,17 +317,15 @@ export default function SweatView({ user }) {
                   <p className="text-sm font-medium text-ink-soft mb-1">
                     {pred.text}
                   </p>
-                  <div className="flex items-center justify-between">
-                    <span className="mono-label font-bold text-brand">
-                      {myBets[pred.id]?.toUpperCase()}
-                    </span>
+                  <NetPositionDisplay bets={myBets[pred.id]} prediction={pred} />
+                  <div className="flex items-center justify-end">
                     <span
                       className={`text-sm font-bold ${
                         uv >= 0 ? "text-green-600" : "text-red-500"
                       }`}
                     >
                       {uv >= 0 ? "+" : ""}
-                      {formatCurrency(uv)}
+                      {formatCurrency(uv)} (est.)
                     </span>
                   </div>
                 </motion.div>

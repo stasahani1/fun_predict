@@ -171,4 +171,58 @@ export function unrealizedValue(prediction, betSide) {
   }
 }
 
+// --- Hedging / Multi-Bet Functions ---
+
+/**
+ * Calculate net position from an array of user bets on a single prediction.
+ * For binary: returns { yesAmount, noAmount, netSide, netAmount }
+ * For multi: returns { betsBySide: { [outcomeId]: amount }, totalSpent }
+ */
+export function calculateNetPosition(userBets) {
+  if (!userBets || userBets.length === 0) {
+    return { yesAmount: 0, noAmount: 0, netSide: null, netAmount: 0, betsBySide: {}, totalSpent: 0 };
+  }
+
+  const betsBySide = {};
+  let totalSpent = 0;
+  for (const bet of userBets) {
+    const amt = bet.amount || BET_AMOUNT;
+    betsBySide[bet.side] = (betsBySide[bet.side] || 0) + amt;
+    totalSpent += amt;
+  }
+
+  const yesAmount = betsBySide["yes"] || 0;
+  const noAmount = betsBySide["no"] || 0;
+
+  let netSide = null;
+  let netAmount = 0;
+  if (yesAmount > noAmount) {
+    netSide = "yes";
+    netAmount = yesAmount - noAmount;
+  } else if (noAmount > yesAmount) {
+    netSide = "no";
+    netAmount = noAmount - yesAmount;
+  }
+
+  return { yesAmount, noAmount, netSide, netAmount, betsBySide, totalSpent };
+}
+
+/**
+ * Calculate user's share of a pool side.
+ */
+export function calculatePoolShare(totalSideBets, userBetsOnSide) {
+  if (totalSideBets === 0 || userBetsOnSide === 0) return 0;
+  return userBetsOnSide / (totalSideBets * BET_AMOUNT);
+}
+
+/**
+ * Calculate unrealized value across all of a user's bets on a prediction.
+ */
+export function unrealizedValueMultiBet(prediction, userBets) {
+  if (!userBets || userBets.length === 0) return 0;
+  return userBets.reduce((sum, bet) => {
+    return sum + unrealizedValue(prediction, bet.side);
+  }, 0);
+}
+
 export { BET_AMOUNT };

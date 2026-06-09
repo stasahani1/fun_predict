@@ -53,23 +53,11 @@ export const PHASE_CONFIG = {
     emoji: "👥",
     description: "Share the code — waiting for everyone to join!",
   },
-  posting: {
-    label: "Posting Predictions",
-    color: "bg-brand",
-    emoji: "✏️",
-    description: "Add your predictions for the event!",
-  },
-  betting: {
-    label: "Place Your Bets",
-    color: "bg-brand",
-    emoji: "🎰",
-    description: "Bet on predictions — $10 per bet!",
-  },
-  live: {
-    label: "Event Live",
+  active: {
+    label: "Active",
     color: "bg-brand",
     emoji: "🔥",
-    description: "The event is happening! No more bets.",
+    description: "Post predictions and place bets!",
   },
   resolving: {
     label: "Resolving",
@@ -83,4 +71,13 @@ export const PHASE_CONFIG = {
     emoji: "🏆",
     description: "All done! Check the results.",
   },
+};
+
+/**
+ * Per-prediction status config.
+ */
+export const PREDICTION_STATUS = {
+  open: { label: "Open", color: "bg-green-100 text-green-700" },
+  locked: { label: "Locked", color: "bg-yellow-100 text-yellow-700" },
+  resolved: { label: "Resolved", color: "bg-gray-100 text-gray-600" },
 };

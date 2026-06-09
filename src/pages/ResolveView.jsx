@@ -18,6 +18,8 @@ import {
 } from "../utils/payouts";
 import { brierScore } from "../utils/gamification";
 import { motion } from "framer-motion";
+import { PREDICTION_STATUS } from "../utils/helpers";
+import { migrateEventPhase, migratePrediction } from "../utils/migration";
 
 export default function ResolveView({ user }) {
   const { eventId } = useParams();
@@ -32,7 +34,10 @@ export default function ResolveView({ user }) {
       collection(db, "events", eventId, "predictions"),
       (snap) => {
         const preds = [];
-        snap.forEach((d) => preds.push({ id: d.id, ...d.data() }));
+        snap.forEach((d) => {
+          const raw = { id: d.id, ...d.data() };
+          preds.push(migratePrediction(raw, "resolving"));
+        });
         preds.sort(
           (a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0)
         );
@@ -45,7 +50,7 @@ export default function ResolveView({ user }) {
   const resolvePrediction = async (pred, resolution) => {
     setResolving(pred.id);
     try {
-      const updateData = { resolution };
+      const updateData = { resolution, status: "resolved" };
 
       if (pred.type === "overunder" && actualValues[pred.id] !== undefined) {
         updateData.actualValue = parseFloat(actualValues[pred.id]);
@@ -71,73 +76,93 @@ export default function ResolveView({ user }) {
         }
       });
 
-      let payout;
+      let payoutPerWin;
       if (pred.type === "multi") {
-        payout = multiCalculatePayout(pred.outcomes || [], resolution);
+        payoutPerWin = multiCalculatePayout(pred.outcomes || [], resolution);
       } else {
-        payout = calculatePayout(pred.totalYes, pred.totalNo, resolution);
+        payoutPerWin = calculatePayout(pred.totalYes, pred.totalNo, resolution);
       }
 
-      const batch = writeBatch(db);
-
+      // Aggregate payouts per user to avoid stale reads with multiple bets
+      const userPayouts = {}; // { [userId]: { balanceDelta, profitDelta, bets: [...] } }
       for (const bet of predBets) {
-        const balRef = doc(db, "events", eventId, "balances", bet.userId);
-        const userDocRef = doc(db, "users", bet.userId);
-
-        let won = false;
-        if (pred.type === "multi") {
-          won = bet.side === resolution;
-        } else {
-          won = bet.side === resolution;
+        if (!userPayouts[bet.userId]) {
+          userPayouts[bet.userId] = { balanceDelta: 0, profitDelta: 0, bets: [], userName: bet.userName };
         }
+        const entry = userPayouts[bet.userId];
+        const won = bet.side === resolution;
+        entry.bets.push({ ...bet, won });
 
         if (resolution === "void") {
-          const balSnap = await getDoc(balRef);
-          if (balSnap.exists()) {
-            const current = balSnap.data();
-            batch.update(balRef, {
-              balance: current.balance + BET_AMOUNT,
-            });
-          }
+          entry.balanceDelta += BET_AMOUNT;
         } else if (won) {
-          const balSnap = await getDoc(balRef);
-          if (balSnap.exists()) {
-            const current = balSnap.data();
-            batch.update(balRef, {
-              balance: current.balance + payout,
-              netProfit: current.netProfit + (payout - BET_AMOUNT),
-            });
-          }
+          entry.balanceDelta += payoutPerWin;
+          entry.profitDelta += (payoutPerWin - BET_AMOUNT);
         } else {
+          entry.profitDelta -= BET_AMOUNT;
+        }
+      }
+
+      // Write aggregated balance updates in batches (max 400 ops per batch)
+      const userIds = Object.keys(userPayouts);
+      const MAX_OPS_PER_BATCH = 400;
+      for (let start = 0; start < userIds.length; start += MAX_OPS_PER_BATCH) {
+        const chunk = userIds.slice(start, start + MAX_OPS_PER_BATCH);
+        const batch = writeBatch(db);
+
+        for (const userId of chunk) {
+          const { balanceDelta, profitDelta } = userPayouts[userId];
+          const balRef = doc(db, "events", eventId, "balances", userId);
           const balSnap = await getDoc(balRef);
           if (balSnap.exists()) {
             const current = balSnap.data();
-            batch.update(balRef, {
-              netProfit: current.netProfit - BET_AMOUNT,
-            });
+            const updates = {};
+            if (balanceDelta !== 0) {
+              updates.balance = current.balance + balanceDelta;
+            }
+            if (profitDelta !== 0) {
+              updates.netProfit = (current.netProfit || 0) + profitDelta;
+            }
+            if (Object.keys(updates).length > 0) {
+              batch.update(balRef, updates);
+            }
           }
         }
 
-        if (resolution !== "void") {
+        await batch.commit();
+      }
+
+      // Update user stats (outside batch since these are individual doc writes)
+      if (resolution !== "void") {
+        for (const userId of userIds) {
+          const { bets, userName } = userPayouts[userId];
           try {
+            const userDocRef = doc(db, "users", userId);
             const userSnap = await getDoc(userDocRef);
             const userData = userSnap.exists() ? userSnap.data() : {};
-            const impliedProb = bet.impliedProbAtBet ?? 0.5;
-            const bScore = brierScore(impliedProb, won);
+
+            let brierSum = 0;
+            let lastWon = false;
+            for (const bet of bets) {
+              const impliedProb = bet.impliedProbAtBet ?? 0.5;
+              brierSum += brierScore(impliedProb, bet.won);
+              lastWon = bet.won;
+            }
+
             const prevStreak = userData.currentStreak || 0;
             const prevLongest = userData.longestStreak || 0;
-            const newStreak = won ? prevStreak + 1 : 0;
+            const newStreak = lastWon ? prevStreak + 1 : 0;
 
             await setDoc(
               userDocRef,
               {
-                displayName: bet.userName || "Anonymous",
-                brierScoreSum: (userData.brierScoreSum || 0) + bScore,
-                brierScoreCount: (userData.brierScoreCount || 0) + 1,
+                displayName: userName || "Anonymous",
+                brierScoreSum: (userData.brierScoreSum || 0) + brierSum,
+                brierScoreCount: (userData.brierScoreCount || 0) + bets.length,
                 currentStreak: newStreak,
                 longestStreak: Math.max(prevLongest, newStreak),
-                lastBetCorrect: won,
-                totalBetsAllTime: (userData.totalBetsAllTime || 0) + 1,
+                lastBetCorrect: lastWon,
+                totalBetsAllTime: (userData.totalBetsAllTime || 0) + bets.length,
               },
               { merge: true }
             );
@@ -146,8 +171,6 @@ export default function ResolveView({ user }) {
           }
         }
       }
-
-      await batch.commit();
     } catch (err) {
       console.error("Error resolving prediction:", err);
       alert("Failed to resolve. Please try again.");
@@ -172,31 +195,36 @@ export default function ResolveView({ user }) {
     try {
       await updateDoc(
         doc(db, "events", eventId, "predictions", pred.id),
-        { resolution: "void", conditionMet: false }
+        { resolution: "void", conditionMet: false, status: "resolved" }
       );
       const betsSnap = await getDocs(
         collection(db, "events", eventId, "bets")
       );
-      const batch = writeBatch(db);
+
+      // Aggregate refunds per user
+      const userRefunds = {};
       betsSnap.forEach((d) => {
         const bet = d.data();
         if (bet.predictionId === pred.id) {
-          const balRef = doc(db, "events", eventId, "balances", bet.userId);
+          userRefunds[bet.userId] = (userRefunds[bet.userId] || 0) + BET_AMOUNT;
         }
       });
-      for (const d of betsSnap.docs) {
-        const bet = d.data();
-        if (bet.predictionId === pred.id) {
-          const balRef = doc(db, "events", eventId, "balances", bet.userId);
+
+      const userIds = Object.keys(userRefunds);
+      for (let start = 0; start < userIds.length; start += 400) {
+        const chunk = userIds.slice(start, start + 400);
+        const batch = writeBatch(db);
+        for (const userId of chunk) {
+          const balRef = doc(db, "events", eventId, "balances", userId);
           const balSnap = await getDoc(balRef);
           if (balSnap.exists()) {
             batch.update(balRef, {
-              balance: balSnap.data().balance + BET_AMOUNT,
+              balance: balSnap.data().balance + userRefunds[userId],
             });
           }
         }
+        await batch.commit();
       }
-      await batch.commit();
     } catch (err) {
       console.error("Error voiding conditional:", err);
     } finally {
@@ -242,9 +270,16 @@ export default function ResolveView({ user }) {
               transition={{ delay: i * 0.08 }}
               className="card-editorial p-5"
             >
-              <p className="text-base font-semibold text-ink mb-1">
-                {pred.text}
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-base font-semibold text-ink">
+                  {pred.text}
+                </p>
+                {pred.status && PREDICTION_STATUS[pred.status] && (
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PREDICTION_STATUS[pred.status].color}`}>
+                    {PREDICTION_STATUS[pred.status].label}
+                  </span>
+                )}
+              </div>
 
               {isMulti ? (
                 <p className="text-xs text-ink-mute mb-3">

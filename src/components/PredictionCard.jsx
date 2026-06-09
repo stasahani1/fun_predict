@@ -1,12 +1,13 @@
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDualOdds, isBinaryPrediction } from "../utils/payouts";
-import { PREDICTION_CATEGORIES } from "../utils/helpers";
+import { PREDICTION_CATEGORIES, PREDICTION_STATUS } from "../utils/helpers";
 import AnimatedNumber from "./AnimatedNumber";
 import CommentThread from "./CommentThread";
 import MultiOutcomeOdds from "./MultiOutcomeOdds";
 import OverUnderOdds from "./OverUnderOdds";
 import ConditionalBadge from "./ConditionalBadge";
+import PayoutInfoTooltip from "./PayoutInfoTooltip";
 
 export default function PredictionCard({
   prediction,
@@ -21,6 +22,7 @@ export default function PredictionCard({
   const isMulti = prediction.type === "multi";
   const isOverUnder = prediction.type === "overunder";
   const isConditional = prediction.type === "conditional";
+  const isBlind = prediction.blindMode && !prediction.resolution;
 
   const dualOdds = (isBinary || isConditional)
     ? formatDualOdds(prediction.totalYes, prediction.totalNo)
@@ -80,6 +82,16 @@ export default function PredictionCard({
             {isMulti ? "Multi" : isOverUnder ? "O/U" : "Cond."}
           </span>
         )}
+        {prediction.status && PREDICTION_STATUS[prediction.status] && (
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PREDICTION_STATUS[prediction.status].color}`}>
+            {PREDICTION_STATUS[prediction.status].label}
+          </span>
+        )}
+        {isBlind && (
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-800 text-white">
+            Blind
+          </span>
+        )}
       </div>
       {prediction.resolutionCriteria && (
         <p className="text-xs text-ink-mute italic mb-3">
@@ -99,6 +111,7 @@ export default function PredictionCard({
           <MultiOutcomeOdds
             outcomes={prediction.outcomes}
             resolution={prediction.resolution}
+            blind={isBlind}
           />
         </div>
       )}
@@ -112,11 +125,12 @@ export default function PredictionCard({
             totalNo={prediction.totalNo}
             actualValue={prediction.actualValue}
             readOnly
+            blind={isBlind}
           />
         </div>
       )}
 
-      {showOdds && (isBinary || isConditional) && dualOdds && (
+      {showOdds && (isBinary || isConditional) && dualOdds && !isBlind && (
         <div className="flex gap-2 mb-3">
           <div className="flex-1 bg-green-50 rounded-xl p-2 text-center">
             <span className="mono-label text-ink-mute">YES</span>
@@ -140,7 +154,7 @@ export default function PredictionCard({
               </AnimatePresence>
             </div>
             <p className="text-xs text-ink-mute">
-              $10 {"\u2192"} <AnimatedNumber value={dualOdds.yes.payout} format="currency" className="text-xs" />
+              $10 {"\u2192"} ~<AnimatedNumber value={dualOdds.yes.payout} format="currency" className="text-xs" /> (est.) <PayoutInfoTooltip />
             </p>
           </div>
           <div className="flex-1 bg-red-50 rounded-xl p-2 text-center">
@@ -165,13 +179,26 @@ export default function PredictionCard({
               </AnimatePresence>
             </div>
             <p className="text-xs text-ink-mute">
-              $10 {"\u2192"} <AnimatedNumber value={dualOdds.no.payout} format="currency" className="text-xs" />
+              $10 {"\u2192"} ~<AnimatedNumber value={dualOdds.no.payout} format="currency" className="text-xs" /> (est.)
             </p>
           </div>
         </div>
       )}
 
-      {predBets.length > 0 && (
+      {showOdds && (isBinary || isConditional) && isBlind && (
+        <div className="flex gap-2 mb-3">
+          <div className="flex-1 bg-green-50 rounded-xl p-2 text-center">
+            <span className="mono-label text-ink-mute">YES</span>
+            <p className="text-2xl font-extrabold text-green-600">??</p>
+          </div>
+          <div className="flex-1 bg-red-50 rounded-xl p-2 text-center">
+            <span className="mono-label text-ink-mute">NO</span>
+            <p className="text-2xl font-extrabold text-red-500">??</p>
+          </div>
+        </div>
+      )}
+
+      {predBets.length > 0 && !isBlind && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {displayBets.map((bet, i) => {
             let sideLabel = bet.side.toUpperCase();

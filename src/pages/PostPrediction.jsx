@@ -6,6 +6,7 @@ import {
   addDoc,
   collection,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { motion } from "framer-motion";
@@ -45,6 +46,11 @@ export default function PostPrediction({ user }) {
 
   // Conditional state
   const [condition, setCondition] = useState("");
+
+  // New fields
+  const [closeTime, setCloseTime] = useState("");
+  const [blindMode, setBlindMode] = useState(false);
+  const [visibleToTagged, setVisibleToTagged] = useState(false);
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -100,6 +106,10 @@ export default function PostPrediction({ user }) {
         resolution: null,
         totalYes: 0,
         totalNo: 0,
+        status: "open",
+        blindMode,
+        visibleToTagged: type === "tagged" ? visibleToTagged : true,
+        closeTime: closeTime ? Timestamp.fromDate(new Date(closeTime)) : null,
         createdAt: serverTimestamp(),
       };
 
@@ -189,7 +199,7 @@ export default function PostPrediction({ user }) {
           </div>
           <p className="text-xs text-ink-mute mt-2">
             {type === "open" && "Everyone can see and bet on this prediction."}
-            {type === "tagged" && "Tag specific people — they won't be able to bet on it."}
+            {type === "tagged" && "Tag specific people — they won't see it until resolution (unless you toggle visibility)."}
             {type === "multi" && "Multiple outcomes — bettors pick which one will happen."}
             {type === "overunder" && "Set a number line — bettors pick OVER or UNDER."}
             {type === "conditional" && "Only resolves if a condition is met first."}
@@ -376,6 +386,64 @@ export default function PostPrediction({ user }) {
               {resolutionCriteria.length}/150
             </p>
           </div>
+        )}
+
+        {/* Close time (optional) */}
+        <div>
+          <label className="block mono-label text-ink-soft mb-2">
+            Auto-lock time (optional)
+          </label>
+          <input
+            type="datetime-local"
+            value={closeTime}
+            onChange={(e) => setCloseTime(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border-2 border-rule-dark focus:outline-none focus:ring-2 focus:ring-brand text-ink"
+          />
+          <p className="text-xs text-ink-mute mt-1">
+            Betting on this prediction will automatically close at this time.
+          </p>
+        </div>
+
+        {/* Blind mode toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            onClick={() => setBlindMode(!blindMode)}
+            className={`w-11 h-6 rounded-full transition-colors relative ${
+              blindMode ? "bg-brand" : "bg-rule-dark"
+            }`}
+          >
+            <div
+              className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                blindMode ? "translate-x-5" : ""
+              }`}
+            />
+          </div>
+          <div>
+            <span className="text-sm font-semibold text-ink">Blind Betting</span>
+            <p className="text-xs text-ink-mute">Hide odds and bets until resolution</p>
+          </div>
+        </label>
+
+        {/* Visibility toggle for tagged predictions */}
+        {type === "tagged" && (
+          <label className="flex items-center gap-3 cursor-pointer">
+            <div
+              onClick={() => setVisibleToTagged(!visibleToTagged)}
+              className={`w-11 h-6 rounded-full transition-colors relative ${
+                visibleToTagged ? "bg-brand" : "bg-rule-dark"
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  visibleToTagged ? "translate-x-5" : ""
+                }`}
+              />
+            </div>
+            <div>
+              <span className="text-sm font-semibold text-ink">Visible to tagged person</span>
+              <p className="text-xs text-ink-mute">If off, they won't see this until it's resolved</p>
+            </div>
+          </label>
         )}
 
         <motion.button

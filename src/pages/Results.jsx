@@ -191,6 +191,53 @@ export default function Results({ user }) {
       {myBets.length > 0 && (
         <div>
           <h3 className="font-bold text-ink mb-3">Your Bets</h3>
+
+          {/* Per-prediction summaries when user has multiple bets */}
+          {(() => {
+            const grouped = {};
+            myBets.forEach((bet) => {
+              if (!grouped[bet.predictionId]) grouped[bet.predictionId] = [];
+              grouped[bet.predictionId].push(bet);
+            });
+            const multiEntries = Object.entries(grouped).filter(([, bets]) => bets.length > 1);
+            if (multiEntries.length === 0) return null;
+            return (
+              <div className="space-y-2 mb-4">
+                <p className="mono-label text-ink-soft">Position Summaries</p>
+                {multiEntries.map(([predId, bets]) => {
+                  const pred = predictions.find((p) => p.id === predId);
+                  if (!pred) return null;
+                  const totalSpent = bets.length * BET_AMOUNT;
+                  let totalReturn = 0;
+                  for (const bet of bets) {
+                    const won = bet.side === pred.resolution;
+                    const voided = pred.resolution === "void";
+                    if (voided) {
+                      totalReturn += BET_AMOUNT;
+                    } else if (won) {
+                      const p = pred.type === "multi"
+                        ? multiCalculatePayout(pred.outcomes || [], pred.resolution)
+                        : calculatePayout(pred.totalYes, pred.totalNo, pred.resolution);
+                      totalReturn += p;
+                    }
+                  }
+                  const net = totalReturn - totalSpent;
+                  return (
+                    <div key={predId} className={`rounded-xl p-3 border-2 ${net >= 0 ? "border-green-300 bg-green-50" : "border-red-300 bg-red-50"}`}>
+                      <p className="text-xs font-medium text-ink-soft mb-1">{pred.text}</p>
+                      <p className="text-sm font-bold">
+                        {bets.length} bets, {formatCurrency(totalSpent)} wagered{" "}
+                        <span className={net >= 0 ? "text-green-600" : "text-red-500"}>
+                          {net >= 0 ? "+" : ""}{formatCurrency(net)} net
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
           <div className="space-y-3">
             {myBets.map((bet, i) => {
               const pred = predictions.find(
